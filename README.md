@@ -110,6 +110,47 @@ Um sistema web completo para gerenciar seu negócio de fotografia e produção d
 - Faça backup regular do arquivo `fotografia.db`
 - Mantenha o sistema atualizado
 
+## 🗄️ Acesso Manual ao Banco de Dados
+
+### Método 1 - Script Python (Recomendado)
+```bash
+python acesso_banco.py
+```
+
+### Método 2 - SQLite Command Line
+```bash
+acessar_sqlite.bat
+```
+
+### Método 3 - DB Browser (Interface Gráfica)
+1. Baixe: https://sqlitebrowser.org/
+2. Abra o arquivo: `instance/fotografia.db`
+3. Use a interface gráfica para visualizar/editar
+
+### Comandos SQL Úteis
+```sql
+-- Listar todos os eventos
+SELECT * FROM evento;
+
+-- Inserir evento manualmente
+INSERT INTO evento (cliente, tipo_servico, data_evento, valor_negociado, valor_pago, status, observacoes, data_cadastro) 
+VALUES ('João Silva', 'Fotografia', '2024-03-15', 800.00, 400.00, 'Agendado', 'Casamento', datetime('now'));
+
+-- Inserir transação manualmente
+INSERT INTO transacao (tipo, valor, descricao, data_transacao, categoria) 
+VALUES ('Entrada', 400.00, 'Sinal do casamento', '2024-02-10', 'Pagamento de Cliente');
+
+-- Ver estatísticas
+SELECT status, COUNT(*) FROM evento GROUP BY status;
+SELECT tipo, SUM(valor) FROM transacao GROUP BY tipo;
+```
+
+### ⚠️ Cuidados Importantes
+- **Sempre faça backup** do arquivo `instance/fotografia.db` antes de modificações
+- **Não altere IDs** manualmente para evitar conflitos
+- **Use formato de data** 'YYYY-MM-DD' (ex: 2024-03-15)
+- **Valores decimais** devem usar ponto (.) como separador (ex: 800.00)
+
 ## 📁 Estrutura do Projeto
 
 ```

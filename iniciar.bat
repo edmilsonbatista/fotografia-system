@@ -29,7 +29,7 @@ if errorlevel 1 (
 
 REM Verificar se o banco de dados existe
 if not exist "instance\fotografia.db" (
-    echo Criando banco de dados com dados de exemplo...
+    echo Inicializando banco de dados...
     python criar_dados_exemplo.py
 )
 

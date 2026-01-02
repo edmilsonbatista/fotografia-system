@@ -64,6 +64,7 @@
                         <th>Descrição</th>
                         <th>Categoria</th>
                         <th>Valor</th>
+                        <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -88,14 +89,47 @@
                         <td class="{% if transacao.tipo == 'Entrada' %}text-success{% else %}text-danger{% endif %}">
                             {% if transacao.tipo == 'Entrada' %}+{% else %}-{% endif %}R$ {{ "%.2f"|format(transacao.valor) }}
                         </td>
+                        <td>
+                            <button class="btn btn-sm btn-danger" onclick="excluirTransacao({{ transacao.id }}, '{{ transacao.descricao }}')">
+                                <i class="fas fa-trash"></i> Excluir
+                            </button>
+                        </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="5" class="text-center text-muted">Nenhuma transação registrada</td>
+                        <td colspan="6" class="text-center text-muted">Nenhuma transação registrada</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Confirmação de Exclusão -->
+<div class="modal fade" id="confirmarExclusaoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i> Confirmar Exclusão
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-warning"></i> <strong>Atenção!</strong> Esta ação não pode ser desfeita.
+                </div>
+                <p id="mensagemConfirmacao"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-danger" id="btnConfirmarExclusao">
+                    <i class="fas fa-trash"></i> Sim, Excluir
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -152,6 +186,8 @@
 // Definir data padrão como hoje
 document.querySelector('input[name="data_transacao"]').value = new Date().toISOString().split('T')[0];
 
+let transacaoIdExclusao = null;
+
 function atualizarCategorias(tipo) {
     const categoriaSelect = document.getElementById('categoriaSelect');
     categoriaSelect.innerHTML = '<option value="">Selecione uma categoria...</option>';
@@ -184,6 +220,34 @@ function atualizarCategorias(tipo) {
         option.textContent = categoria;
         categoriaSelect.appendChild(option);
     });
+}
+
+function excluirTransacao(transacaoId, descricao) {
+    transacaoIdExclusao = transacaoId;
+    document.getElementById('mensagemConfirmacao').innerHTML = 
+        `Deseja realmente excluir a transação <strong>"${descricao}"</strong>?`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('confirmarExclusaoModal'));
+    modal.show();
+    
+    document.getElementById('btnConfirmarExclusao').onclick = function() {
+        fetch(`/transacao/${transacaoIdExclusao}/excluir`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                modal.hide();
+                location.reload();
+            }
+        })
+        .catch(error => {
+            alert('Erro ao excluir transação. Tente novamente.');
+        });
+    };
 }
 </script>
 {% endblock %}

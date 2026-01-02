@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Importar Dados - Sistema de Fotografia{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <h2><i class="fas fa-file-import"></i> Importar Dados</h2>
+        
+        <!-- Mensagens Flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' }}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="row">
+            <!-- Importar Eventos -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5><i class="fas fa-calendar-plus"></i> Importar Eventos</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('importar_eventos') }}" method="POST" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label class="form-label">Arquivo de Eventos</label>
+                                <input type="file" name="arquivo" class="form-control" accept=".xlsx,.xls,.csv,.txt" required>
+                                <div class="form-text">Formatos aceitos: Excel (.xlsx, .xls) ou CSV/TXT (.csv, .txt)</div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-upload"></i> Importar Eventos
+                            </button>
+                        </form>
+                        
+                        <hr>
+                        <h6>Formato Esperado:</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>cliente</th>
+                                        <th>tipo_servico</th>
+                                        <th>data_evento</th>
+                                        <th>valor_negociado</th>
+                                        <th>valor_pago</th>
+                                        <th>status</th>
+                                        <th>observacoes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>João Silva</td>
+                                        <td>Fotografia</td>
+                                        <td>2024-02-15</td>
+                                        <td>800.00</td>
+                                        <td>400.00</td>
+                                        <td>Agendado</td>
+                                        <td>Casamento</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Importar Transações -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5><i class="fas fa-cash-register"></i> Importar Transações</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('importar_transacoes') }}" method="POST" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label class="form-label">Arquivo de Transações</label>
+                                <input type="file" name="arquivo" class="form-control" accept=".xlsx,.xls,.csv,.txt" required>
+                                <div class="form-text">Formatos aceitos: Excel (.xlsx, .xls) ou CSV/TXT (.csv, .txt)</div>
+                            </div>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-upload"></i> Importar Transações
+                            </button>
+                        </form>
+                        
+                        <hr>
+                        <h6>Formato Esperado:</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>tipo</th>
+                                        <th>valor</th>
+                                        <th>descricao</th>
+                                        <th>data_transacao</th>
+                                        <th>categoria</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Entrada</td>
+                                        <td>500.00</td>
+                                        <td>Pagamento cliente</td>
+                                        <td>2024-02-10</td>
+                                        <td>Pagamento de Cliente</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Instruções -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle"></i> Instruções de Importação</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>📋 Para Eventos:</h6>
+                        <ul>
+                            <li><strong>cliente:</strong> Nome do cliente</li>
+                            <li><strong>tipo_servico:</strong> Fotografia, Storymaker, ou Fotografia + Storymaker</li>
+                            <li><strong>data_evento:</strong> Data no formato YYYY-MM-DD</li>
+                            <li><strong>valor_negociado:</strong> Valor total do serviço</li>
+                            <li><strong>valor_pago:</strong> Valor já pago (opcional, padrão 0)</li>
+                            <li><strong>status:</strong> Agendado, Realizado, ou Cancelado</li>
+                            <li><strong>observacoes:</strong> Informações adicionais (opcional)</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>💰 Para Transações:</h6>
+                        <ul>
+                            <li><strong>tipo:</strong> Entrada ou Saída</li>
+                            <li><strong>valor:</strong> Valor da transação</li>
+                            <li><strong>descricao:</strong> Descrição da transação</li>
+                            <li><strong>data_transacao:</strong> Data no formato YYYY-MM-DD</li>
+                            <li><strong>categoria:</strong> Categoria da transação (opcional)</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-lightbulb"></i>
+                    <strong>Dicas:</strong>
+                    <ul class="mb-0">
+                        <li>Para arquivos CSV/TXT, use ponto e vírgula (;) como separador</li>
+                        <li>Datas devem estar no formato YYYY-MM-DD (ex: 2024-02-15)</li>
+                        <li>Valores decimais devem usar ponto (.) como separador</li>
+                        <li>A primeira linha deve conter os nomes das colunas</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

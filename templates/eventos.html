@@ -48,8 +48,14 @@
                                 <i class="fas fa-dollar-sign"></i> Pagar
                             </button>
                             {% endif %}
+                            <button class="btn btn-sm btn-warning" onclick="editarEvento({{ evento.id }}, '{{ evento.cliente }}', '{{ evento.tipo_servico }}', '{{ evento.data_evento.strftime('%Y-%m-%d') }}', {{ evento.valor_negociado }}, {{ evento.valor_pago }}, '{{ evento.status }}', '{{ evento.observacoes|replace("'", "\\'") }}')">
+                                <i class="fas fa-edit"></i> Editar
+                            </button>
                             <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#detalhesModal{{ evento.id }}">
                                 <i class="fas fa-eye"></i> Ver
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="excluirEvento({{ evento.id }}, '{{ evento.cliente }}')">
+                                <i class="fas fa-trash"></i> Excluir
                             </button>
                         </td>
                     </tr>
@@ -87,6 +93,102 @@
     </div>
 </div>
 
+<!-- Modal para Editar Evento -->
+<div class="modal fade" id="editarEventoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit"></i> Editar Evento
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formEditarEvento">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Cliente *</label>
+                                <input type="text" id="editCliente" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Tipo de Serviço *</label>
+                                <select id="editTipoServico" class="form-select" required>
+                                    <option value="Fotografia">Fotografia</option>
+                                    <option value="Storymaker">Storymaker</option>
+                                    <option value="Fotografia + Storymaker">Fotografia + Storymaker</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Data do Evento *</label>
+                                <input type="date" id="editDataEvento" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Valor Negociado (R$) *</label>
+                                <input type="number" id="editValorNegociado" class="form-control" step="0.01" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Valor Pago (R$)</label>
+                                <input type="number" id="editValorPago" class="form-control" step="0.01">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Status</label>
+                                <select id="editStatus" class="form-select">
+                                    <option value="Agendado">Agendado</option>
+                                    <option value="Realizado">Realizado</option>
+                                    <option value="Cancelado">Cancelado</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Observações</label>
+                        <textarea id="editObservacoes" class="form-control" rows="3" placeholder="Informações adicionais sobre o evento..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-warning" onclick="salvarEdicaoEvento()">
+                    <i class="fas fa-save"></i> Salvar Alterações
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Confirmação de Exclusão -->
+<div class="modal fade" id="confirmarExclusaoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i> Confirmar Exclusão
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-warning"></i> <strong>Atenção!</strong> Esta ação não pode ser desfeita.
+                </div>
+                <p id="mensagemConfirmacao"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-danger" id="btnConfirmarExclusao">
+                    <i class="fas fa-trash"></i> Sim, Excluir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal para Pagamento -->
 <div class="modal fade" id="pagamentoModal" tabindex="-1">
     <div class="modal-dialog">
@@ -113,6 +215,8 @@
 {% block scripts %}
 <script>
 let eventoIdPagamento = null;
+let eventoIdExclusao = null;
+let eventoIdEdicao = null;
 
 function registrarPagamento(eventoId, valorRestante) {
     eventoIdPagamento = eventoId;
@@ -139,6 +243,78 @@ function confirmarPagamento() {
             location.reload();
         }
     });
+}
+
+function editarEvento(eventoId, cliente, tipoServico, dataEvento, valorNegociado, valorPago, status, observacoes) {
+    eventoIdEdicao = eventoId;
+    
+    document.getElementById('editCliente').value = cliente;
+    document.getElementById('editTipoServico').value = tipoServico;
+    document.getElementById('editDataEvento').value = dataEvento;
+    document.getElementById('editValorNegociado').value = valorNegociado;
+    document.getElementById('editValorPago').value = valorPago;
+    document.getElementById('editStatus').value = status;
+    document.getElementById('editObservacoes').value = observacoes;
+    
+    new bootstrap.Modal(document.getElementById('editarEventoModal')).show();
+}
+
+function salvarEdicaoEvento() {
+    const dados = {
+        cliente: document.getElementById('editCliente').value,
+        tipo_servico: document.getElementById('editTipoServico').value,
+        data_evento: document.getElementById('editDataEvento').value,
+        valor_negociado: parseFloat(document.getElementById('editValorNegociado').value),
+        valor_pago: parseFloat(document.getElementById('editValorPago').value),
+        status: document.getElementById('editStatus').value,
+        observacoes: document.getElementById('editObservacoes').value
+    };
+    
+    fetch(`/evento/${eventoIdEdicao}/editar`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dados)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('editarEventoModal')).hide();
+            location.reload();
+        }
+    })
+    .catch(error => {
+        alert('Erro ao salvar alterações. Tente novamente.');
+    });
+}
+
+function excluirEvento(eventoId, nomeCliente) {
+    eventoIdExclusao = eventoId;
+    document.getElementById('mensagemConfirmacao').innerHTML = 
+        `Deseja realmente excluir o evento do cliente <strong>"${nomeCliente}"</strong>?`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('confirmarExclusaoModal'));
+    modal.show();
+    
+    document.getElementById('btnConfirmarExclusao').onclick = function() {
+        fetch(`/evento/${eventoIdExclusao}/excluir`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                modal.hide();
+                location.reload();
+            }
+        })
+        .catch(error => {
+            alert('Erro ao excluir evento. Tente novamente.');
+        });
+    };
 }
 </script>
 {% endblock %}

@@ -1,12 +1,20 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, date
 import os
+import pandas as pd
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'sua-chave-secreta-aqui'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///fotografia.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
+
+# Criar pasta de uploads se não existir
+if not os.path.exists('uploads'):
+    os.makedirs('uploads')
 
 db = SQLAlchemy(app)
 
@@ -121,6 +129,162 @@ def nova_transacao():
     db.session.add(transacao)
     db.session.commit()
     return redirect(url_for('caixa'))
+
+@app.route('/evento/<int:id>/excluir', methods=['POST'])
+def excluir_evento(id):
+    evento = Evento.query.get_or_404(id)
+    db.session.delete(evento)
+    db.session.commit()
+    return jsonify({'success': True})
+
+@app.route('/evento/<int:id>/editar', methods=['POST'])
+def editar_evento(id):
+    evento = Evento.query.get_or_404(id)
+    
+    evento.cliente = request.json.get('cliente', evento.cliente)
+    evento.tipo_servico = request.json.get('tipo_servico', evento.tipo_servico)
+    evento.data_evento = datetime.strptime(request.json.get('data_evento'), '%Y-%m-%d').date() if request.json.get('data_evento') else evento.data_evento
+    evento.valor_negociado = float(request.json.get('valor_negociado', evento.valor_negociado))
+    evento.valor_pago = float(request.json.get('valor_pago', evento.valor_pago))
+    evento.status = request.json.get('status', evento.status)
+    evento.observacoes = request.json.get('observacoes', evento.observacoes)
+    
+    db.session.commit()
+    return jsonify({'success': True})
+
+@app.route('/transacao/<int:id>/excluir', methods=['POST'])
+def excluir_transacao(id):
+    transacao = Transacao.query.get_or_404(id)
+    db.session.delete(transacao)
+    db.session.commit()
+    return jsonify({'success': True})
+
+@app.route('/importar')
+def importar():
+    return render_template('importar.html')
+
+@app.route('/importar/eventos', methods=['POST'])
+def importar_eventos():
+    if 'arquivo' not in request.files:
+        flash('Nenhum arquivo selecionado', 'error')
+        return redirect(url_for('importar'))
+    
+    arquivo = request.files['arquivo']
+    if arquivo.filename == '':
+        flash('Nenhum arquivo selecionado', 'error')
+        return redirect(url_for('importar'))
+    
+    if arquivo:
+        filename = secure_filename(arquivo.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        arquivo.save(filepath)
+        
+        try:
+            # Ler arquivo baseado na extensão
+            if filename.endswith('.xlsx') or filename.endswith('.xls'):
+                df = pd.read_excel(filepath)
+            elif filename.endswith('.csv') or filename.endswith('.txt'):
+                df = pd.read_csv(filepath, sep=';')
+            else:
+                flash('Formato de arquivo não suportado. Use Excel (.xlsx, .xls) ou CSV/TXT (.csv, .txt)', 'error')
+                return redirect(url_for('importar'))
+            
+            # Mapear colunas esperadas
+            colunas_esperadas = ['cliente', 'tipo_servico', 'data_evento', 'valor_negociado', 'valor_pago', 'status', 'observacoes']
+            
+            eventos_importados = 0
+            for _, row in df.iterrows():
+                try:
+                    # Converter data
+                    if pd.notna(row.get('data_evento')):
+                        data_evento = pd.to_datetime(row['data_evento']).date()
+                    else:
+                        continue
+                    
+                    evento = Evento(
+                        cliente=str(row.get('cliente', '')),
+                        tipo_servico=str(row.get('tipo_servico', 'Fotografia')),
+                        data_evento=data_evento,
+                        valor_negociado=float(row.get('valor_negociado', 0)),
+                        valor_pago=float(row.get('valor_pago', 0)),
+                        status=str(row.get('status', 'Agendado')),
+                        observacoes=str(row.get('observacoes', ''))
+                    )
+                    db.session.add(evento)
+                    eventos_importados += 1
+                except Exception as e:
+                    continue
+            
+            db.session.commit()
+            os.remove(filepath)  # Remover arquivo após importação
+            
+            flash(f'{eventos_importados} eventos importados com sucesso!', 'success')
+            
+        except Exception as e:
+            flash(f'Erro ao processar arquivo: {str(e)}', 'error')
+            if os.path.exists(filepath):
+                os.remove(filepath)
+    
+    return redirect(url_for('importar'))
+
+@app.route('/importar/transacoes', methods=['POST'])
+def importar_transacoes():
+    if 'arquivo' not in request.files:
+        flash('Nenhum arquivo selecionado', 'error')
+        return redirect(url_for('importar'))
+    
+    arquivo = request.files['arquivo']
+    if arquivo.filename == '':
+        flash('Nenhum arquivo selecionado', 'error')
+        return redirect(url_for('importar'))
+    
+    if arquivo:
+        filename = secure_filename(arquivo.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        arquivo.save(filepath)
+        
+        try:
+            # Ler arquivo baseado na extensão
+            if filename.endswith('.xlsx') or filename.endswith('.xls'):
+                df = pd.read_excel(filepath)
+            elif filename.endswith('.csv') or filename.endswith('.txt'):
+                df = pd.read_csv(filepath, sep=';')
+            else:
+                flash('Formato de arquivo não suportado. Use Excel (.xlsx, .xls) ou CSV/TXT (.csv, .txt)', 'error')
+                return redirect(url_for('importar'))
+            
+            transacoes_importadas = 0
+            for _, row in df.iterrows():
+                try:
+                    # Converter data
+                    if pd.notna(row.get('data_transacao')):
+                        data_transacao = pd.to_datetime(row['data_transacao']).date()
+                    else:
+                        continue
+                    
+                    transacao = Transacao(
+                        tipo=str(row.get('tipo', 'Entrada')),
+                        valor=float(row.get('valor', 0)),
+                        descricao=str(row.get('descricao', '')),
+                        data_transacao=data_transacao,
+                        categoria=str(row.get('categoria', ''))
+                    )
+                    db.session.add(transacao)
+                    transacoes_importadas += 1
+                except Exception as e:
+                    continue
+            
+            db.session.commit()
+            os.remove(filepath)  # Remover arquivo após importação
+            
+            flash(f'{transacoes_importadas} transações importadas com sucesso!', 'success')
+            
+        except Exception as e:
+            flash(f'Erro ao processar arquivo: {str(e)}', 'error')
+            if os.path.exists(filepath):
+                os.remove(filepath)
+    
+    return redirect(url_for('importar'))
 
 @app.route('/api/dashboard-data')
 def dashboard_data():
