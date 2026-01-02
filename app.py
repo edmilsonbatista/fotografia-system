@@ -416,6 +416,75 @@ def dashboard_data():
             'servicos_por_tipo': []
         })
 
+@app.route('/api/eventos-calendario')
+def eventos_calendario():
+    try:
+        eventos = Evento.query.all()
+        eventos_json = []
+        
+        for evento in eventos:
+            eventos_json.append({
+                'id': evento.id,
+                'cliente': evento.cliente,
+                'tipo_servico': evento.tipo_servico,
+                'data_evento': evento.data_evento.strftime('%Y-%m-%d'),
+                'valor_negociado': float(evento.valor_negociado),
+                'valor_pago': float(evento.valor_pago),
+                'status': evento.status,
+                'observacoes': evento.observacoes or '',
+                'data_cadastro': evento.data_cadastro.isoformat()
+            })
+        
+        return jsonify(eventos_json)
+    except Exception as e:
+        print(f"Erro na API eventos-calendario: {e}")
+        return jsonify([])
+
+@app.route('/api/alertas-eventos')
+def alertas_eventos():
+    try:
+        from datetime import timedelta
+        hoje = date.today()
+        uma_semana = hoje + timedelta(days=7)
+        tres_dias = hoje + timedelta(days=3)
+        
+        # Eventos em 7 dias
+        eventos_7_dias = Evento.query.filter(
+            Evento.data_evento == uma_semana,
+            Evento.status == 'Agendado'
+        ).all()
+        
+        # Eventos em 3 dias
+        eventos_3_dias = Evento.query.filter(
+            Evento.data_evento == tres_dias,
+            Evento.status == 'Agendado'
+        ).all()
+        
+        alertas = []
+        
+        for evento in eventos_7_dias:
+            alertas.append({
+                'tipo': 'semana',
+                'cliente': evento.cliente,
+                'data': evento.data_evento.strftime('%d/%m/%Y'),
+                'tipo_servico': evento.tipo_servico,
+                'dias': 7
+            })
+        
+        for evento in eventos_3_dias:
+            alertas.append({
+                'tipo': 'urgente',
+                'cliente': evento.cliente,
+                'data': evento.data_evento.strftime('%d/%m/%Y'),
+                'tipo_servico': evento.tipo_servico,
+                'dias': 3
+            })
+        
+        return jsonify(alertas)
+    except Exception as e:
+        print(f"Erro na API alertas-eventos: {e}")
+        return jsonify([])
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

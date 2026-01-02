@@ -294,3 +294,158 @@ canvas {
 .evento-card:active {
     transform: translateY(-1px) scale(0.98);
 }
+
+/* Estilos do Calendário */
+.calendario-container {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.calendario-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    margin-bottom: 10px;
+}
+
+.dia-semana {
+    text-align: center;
+    font-weight: bold;
+    padding: 10px 5px;
+    background-color: #f8f9fa;
+    color: #495057;
+    border-radius: 5px;
+    font-size: 0.9rem;
+}
+
+.calendario-dias {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.dia-calendario {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 8px 4px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: #fff;
+    position: relative;
+    min-height: 60px;
+}
+
+.dia-calendario:hover {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+    transform: scale(1.05);
+}
+
+.dia-calendario.hoje {
+    background-color: #2196f3;
+    color: white;
+    font-weight: bold;
+}
+
+.dia-calendario.outro-mes {
+    color: #ccc;
+    background-color: #f8f9fa;
+}
+
+.dia-calendario.selecionado {
+    background-color: #4caf50;
+    color: white;
+    border-color: #4caf50;
+}
+
+.numero-dia {
+    font-weight: bold;
+    font-size: 0.9rem;
+    margin-bottom: 2px;
+}
+
+.eventos-dia {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    width: 100%;
+    align-items: center;
+}
+
+.evento-ponto {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin: 1px 0;
+}
+
+.evento-ponto.agendado {
+    background-color: #ffc107;
+}
+
+.evento-ponto.realizado {
+    background-color: #28a745;
+}
+
+.evento-ponto.cancelado {
+    background-color: #dc3545;
+}
+
+.evento-resumo {
+    font-size: 0.7rem;
+    text-align: center;
+    margin-top: 2px;
+    line-height: 1;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.evento-item {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 8px;
+    border-left: 4px solid #0d6efd;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.evento-item:hover {
+    background-color: #e3f2fd;
+    transform: translateX(5px);
+}
+
+.evento-item.realizado {
+    border-left-color: #28a745;
+}
+
+.evento-item.cancelado {
+    border-left-color: #dc3545;
+}
+
+@media (max-width: 768px) {
+    .dia-calendario {
+        min-height: 50px;
+        padding: 4px 2px;
+    }
+    
+    .numero-dia {
+        font-size: 0.8rem;
+    }
+    
+    .evento-resumo {
+        font-size: 0.6rem;
+    }
+    
+    .dia-semana {
+        padding: 8px 3px;
+        font-size: 0.8rem;
+    }
+}
