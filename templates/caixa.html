@@ -19,7 +19,7 @@
     <div class="col-md-3">
         <div class="card bg-success text-white">
             <div class="card-body text-center">
-                <h4>R$ {{ "%.2f"|format(transacoes|selectattr('tipo', 'equalto', 'Entrada')|sum(attribute='valor')) }}</h4>
+                <h4>{{ transacoes|selectattr('tipo', 'equalto', 'Entrada')|sum(attribute='valor')|moeda }}</h4>
                 <p class="mb-0">Total de Entradas</p>
             </div>
         </div>
@@ -27,7 +27,7 @@
     <div class="col-md-3">
         <div class="card bg-danger text-white">
             <div class="card-body text-center">
-                <h4>R$ {{ "%.2f"|format(transacoes|selectattr('tipo', 'equalto', 'Saída')|sum(attribute='valor')) }}</h4>
+                <h4>{{ transacoes|selectattr('tipo', 'equalto', 'Saída')|sum(attribute='valor')|moeda }}</h4>
                 <p class="mb-0">Total de Saídas</p>
             </div>
         </div>
@@ -35,16 +35,37 @@
     <div class="col-md-3">
         <div class="card bg-{% if saldo >= 0 %}primary{% else %}warning{% endif %} text-white">
             <div class="card-body text-center">
-                <h4>R$ {{ "%.2f"|format(saldo) }}</h4>
+                <h4>{{ saldo|moeda }}</h4>
                 <p class="mb-0">Saldo Atual</p>
             </div>
         </div>
     </div>
     <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body text-center">
+                <h4>{{ total_pendente|moeda }}</h4>
+                <p class="mb-0">A Receber</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
         <div class="card bg-info text-white">
             <div class="card-body text-center">
-                <h4>{{ transacoes|length }}</h4>
+                <h4>{{ saldo_projetado|moeda }}</h4>
+                <p class="mb-0">Saldo Projetado</p>
+                <small class="opacity-75">Atual + A Receber</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card bg-secondary text-white">
+            <div class="card-body text-center">
+                <h4>{{ (transacoes|length + transacoes_pendentes|length)|numero }}</h4>
                 <p class="mb-0">Total de Transações</p>
+                <small class="opacity-75">{{ transacoes_pendentes|length|numero }} pendentes</small>
             </div>
         </div>
     </div>
@@ -93,6 +114,11 @@
                             <button class="btn btn-sm btn-danger" onclick="excluirTransacao({{ transacao.id }}, '{{ transacao.descricao }}')">
                                 <i class="fas fa-trash"></i> Excluir
                             </button>
+                            {% if transacao.evento_id and transacao.tipo == 'Entrada' and 'Pagamento -' in transacao.descricao %}
+                            <button class="btn btn-sm btn-warning ms-1" onclick="reverterPagamento({{ transacao.id }}, '{{ transacao.descricao }}')">
+                                <i class="fas fa-undo"></i> Reverter
+                            </button>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}
@@ -105,6 +131,46 @@
         </div>
     </div>
 </div>
+
+{% if transacoes_pendentes %}
+<div class="card mt-4">
+    <div class="card-header bg-warning">
+        <h5 class="mb-0"><i class="fas fa-clock"></i> Entradas Pendentes</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Data Prevista</th>
+                        <th>Cliente</th>
+                        <th>Descrição</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transacao in transacoes_pendentes %}
+                    <tr>
+                        <td>{{ transacao.data_transacao.strftime('%d/%m/%Y') }}</td>
+                        <td>
+                            <strong>{{ transacao.descricao.split(' - ')[1] if ' - ' in transacao.descricao else 'Cliente' }}</strong>
+                        </td>
+                        <td>{{ transacao.descricao }}</td>
+                        <td class="text-warning fw-bold">
+                            {{ transacao.valor|moeda }}
+                        </td>
+                        <td>
+                            <span class="badge bg-warning text-dark">Pendente</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <!-- Modal para Confirmação de Exclusão -->
 <div class="modal fade" id="confirmarExclusaoModal" tabindex="-1">
@@ -154,7 +220,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Valor (R$) *</label>
-                        <input type="number" name="valor" class="form-control" step="0.01" required>
+                        <input type="number" name="valor" class="form-control" step="0.01" required onblur="formatarCampoMoeda(this)">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Descrição *</label>
@@ -183,6 +249,14 @@
 
 {% block scripts %}
 <script>
+// Função para formatação automática de campos monetários
+function formatarCampoMoeda(campo) {
+    const valor = parseFloat(campo.value);
+    if (!isNaN(valor)) {
+        campo.value = valor.toFixed(2);
+    }
+}
+
 // Definir data padrão como hoje
 document.querySelector('input[name="data_transacao"]').value = new Date().toISOString().split('T')[0];
 
@@ -248,6 +322,28 @@ function excluirTransacao(transacaoId, descricao) {
             alert('Erro ao excluir transação. Tente novamente.');
         });
     };
+}
+
+function reverterPagamento(transacaoId, descricao) {
+    if (confirm(`Deseja reverter o pagamento "${descricao}"?\n\nIsso irá:\n- Remover o valor pago do evento\n- Voltar o status para Agendado\n- Excluir esta transação\n\nEsta ação não pode ser desfeita.`)) {
+        fetch(`/transacao/${transacaoId}/reverter`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erro: ' + (data.error || 'Não foi possível reverter o pagamento'));
+            }
+        })
+        .catch(error => {
+            alert('Erro ao reverter pagamento. Tente novamente.');
+        });
+    }
 }
 </script>
 {% endblock %}

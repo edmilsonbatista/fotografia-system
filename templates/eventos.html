@@ -19,6 +19,7 @@
                         <th>Cliente</th>
                         <th>Tipo de Serviço</th>
                         <th>Data do Evento</th>
+                        <th>Ensaios Extras</th>
                         <th>Valor Negociado</th>
                         <th>Valor Pago</th>
                         <th>Status</th>
@@ -31,8 +32,15 @@
                         <td>{{ evento.cliente }}</td>
                         <td>{{ evento.tipo_servico }}</td>
                         <td>{{ evento.data_evento.strftime('%d/%m/%Y') }}</td>
-                        <td>R$ {{ "%.2f"|format(evento.valor_negociado) }}</td>
-                        <td>R$ {{ "%.2f"|format(evento.valor_pago) }}</td>
+                        <td>
+                            {% if evento.ensaios_extras == 'Nenhum' %}
+                                <span class="badge bg-secondary">{{ evento.ensaios_extras }}</span>
+                            {% else %}
+                                <span class="badge bg-info">{{ evento.ensaios_extras }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ evento.valor_negociado|moeda }}</td>
+                        <td>{{ evento.valor_pago|moeda }}</td>
                         <td>
                             {% if evento.status == 'Agendado' %}
                                 <span class="badge bg-warning">{{ evento.status }}</span>
@@ -48,7 +56,7 @@
                                 <i class="fas fa-dollar-sign"></i> Pagar
                             </button>
                             {% endif %}
-                            <button class="btn btn-sm btn-warning" onclick="editarEvento({{ evento.id }}, '{{ evento.cliente }}', '{{ evento.tipo_servico }}', '{{ evento.data_evento.strftime('%Y-%m-%d') }}', {{ evento.valor_negociado }}, {{ evento.valor_pago }}, '{{ evento.status }}', '{{ evento.observacoes|replace("'", "\\'") }}')">
+                            <button class="btn btn-sm btn-warning" onclick="editarEvento({{ evento.id }}, '{{ evento.cliente }}', '{{ evento.tipo_servico }}', '{{ evento.data_evento.strftime('%Y-%m-%d') }}', {{ evento.valor_negociado }}, {{ evento.valor_pago }}, '{{ evento.status }}', '{{ evento.observacoes|replace("'", "\\'") }}', '{{ evento.ensaios_extras }}')">
                                 <i class="fas fa-edit"></i> Editar
                             </button>
                             <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#detalhesModal{{ evento.id }}">
@@ -88,6 +96,15 @@
                     </div>
                     {% endfor %}
                 </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <th colspan="4" class="text-end">TOTAIS:</th>
+                        <th class="text-success fw-bold">{{ eventos|sum(attribute='valor_negociado')|moeda }}</th>
+                        <th class="text-info fw-bold">{{ eventos|sum(attribute='valor_pago')|moeda }}</th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </tfoot>
             </table>
         </div>
     </div>
@@ -127,11 +144,11 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Valor Negociado (R$) *</label>
-                                <input type="number" id="editValorNegociado" class="form-control" step="0.01" required>
+                                <input type="number" id="editValorNegociado" class="form-control" step="0.01" required onblur="formatarCampoMoeda(this)">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Valor Pago (R$)</label>
-                                <input type="number" id="editValorPago" class="form-control" step="0.01">
+                                <input type="number" id="editValorPago" class="form-control" step="0.01" onblur="formatarCampoMoeda(this)">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Status</label>
@@ -139,8 +156,49 @@
                                     <option value="Agendado">Agendado</option>
                                     <option value="Realizado">Realizado</option>
                                     <option value="Cancelado">Cancelado</option>
+                                    <option value="Pendente">Pendente</option>
                                 </select>
                             </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editTemEnsaiosExtras" name="editTemEnsaiosExtras" onchange="toggleEditEnsaiosExtras()">
+                            <label class="form-check-label" for="editTemEnsaiosExtras">
+                                Possui Ensaios Extras
+                            </label>
+                        </div>
+                        <div id="editEnsaiosExtrasOptions" class="mt-3" style="display: none;">
+                            <label class="form-label">Tipo de Ensaio Extra</label>
+                            <div class="mb-2">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editTipoEnsaio" id="editPreWedding" value="Pre-Wedding">
+                                    <label class="form-check-label" for="editPreWedding">Pre-Wedding</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editTipoEnsaio" id="editBookFoto" value="Book Fotográfico (15 anos)">
+                                    <label class="form-check-label" for="editBookFoto">Book Fotográfico (15 anos)</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editTipoEnsaio" id="editEnsaioCasal" value="Ensaio Casal">
+                                    <label class="form-check-label" for="editEnsaioCasal">Ensaio Casal</label>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editTipoEnsaio" id="editEnsaioIndividual" value="Ensaio Individual">
+                                    <label class="form-check-label" for="editEnsaioIndividual">Ensaio Individual</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editTipoEnsaio" id="editEnsaioFamilia" value="Ensaio Família">
+                                    <label class="form-check-label" for="editEnsaioFamilia">Ensaio Família</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="editTipoEnsaio" id="editOutros" value="Outros" onchange="toggleEditOutrosEnsaio()">
+                                    <label class="form-check-label" for="editOutros">Outros</label>
+                                </div>
+                            </div>
+                            <div id="editOutrosEnsaioField" class="mt-2" style="display: none;">
+                                <input type="text" class="form-control" id="editOutrosEnsaioTexto" name="editOutrosEnsaioTexto" placeholder="Especifique o tipo de ensaio...">
+                            </div>
+                        </div>
                         </div>
                     </div>
                     <div class="mb-3">
@@ -214,6 +272,41 @@
 
 {% block scripts %}
 <script>
+// Função para formatação automática de campos monetários
+function formatarCampoMoeda(campo) {
+    const valor = parseFloat(campo.value);
+    if (!isNaN(valor)) {
+        campo.value = valor.toFixed(2);
+    }
+}
+
+// Funções para o modal de edição
+function toggleEditEnsaiosExtras() {
+    const checkbox = document.getElementById('editTemEnsaiosExtras');
+    const options = document.getElementById('editEnsaiosExtrasOptions');
+    
+    if (checkbox.checked) {
+        options.style.display = 'block';
+    } else {
+        options.style.display = 'none';
+        document.querySelectorAll('input[name="editTipoEnsaio"]').forEach(radio => radio.checked = false);
+        document.getElementById('editOutrosEnsaioField').style.display = 'none';
+        document.getElementById('editOutrosEnsaioTexto').value = '';
+    }
+}
+
+function toggleEditOutrosEnsaio() {
+    const outrosRadio = document.getElementById('editOutros');
+    const outrosField = document.getElementById('editOutrosEnsaioField');
+    
+    if (outrosRadio.checked) {
+        outrosField.style.display = 'block';
+    } else {
+        outrosField.style.display = 'none';
+        document.getElementById('editOutrosEnsaioTexto').value = '';
+    }
+}
+
 let eventoIdPagamento = null;
 let eventoIdExclusao = null;
 let eventoIdEdicao = null;
@@ -227,25 +320,41 @@ function registrarPagamento(eventoId, valorRestante) {
 function confirmarPagamento() {
     const valor = parseFloat(document.getElementById('valorPagamento').value);
     
+    if (!valor || valor <= 0) {
+        alert('Por favor, insira um valor válido.');
+        return;
+    }
+    
     fetch(`/evento/${eventoIdPagamento}/pagar`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            evento_id: eventoIdPagamento,
             valor: valor
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('pagamentoModal')).hide();
             location.reload();
+        } else {
+            alert('Erro: ' + (data.error || 'Erro desconhecido'));
         }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao processar pagamento: ' + error.message);
     });
 }
 
-function editarEvento(eventoId, cliente, tipoServico, dataEvento, valorNegociado, valorPago, status, observacoes) {
+function editarEvento(eventoId, cliente, tipoServico, dataEvento, valorNegociado, valorPago, status, observacoes, ensaiosExtras) {
     eventoIdEdicao = eventoId;
     
     document.getElementById('editCliente').value = cliente;
@@ -256,10 +365,48 @@ function editarEvento(eventoId, cliente, tipoServico, dataEvento, valorNegociado
     document.getElementById('editStatus').value = status;
     document.getElementById('editObservacoes').value = observacoes;
     
+    // Configurar ensaios extras
+    const temEnsaios = ensaiosExtras && ensaiosExtras !== 'Nenhum';
+    document.getElementById('editTemEnsaiosExtras').checked = temEnsaios;
+    
+    if (temEnsaios) {
+        document.getElementById('editEnsaiosExtrasOptions').style.display = 'block';
+        
+        // Verificar se é uma opção pré-definida
+        const opcoesPredefinidas = ['Pre-Wedding', 'Book Fotográfico (15 anos)', 'Ensaio Casal', 'Ensaio Individual', 'Ensaio Família'];
+        const radioEncontrado = opcoesPredefinidas.find(opcao => opcao === ensaiosExtras);
+        
+        if (radioEncontrado) {
+            document.querySelector(`input[name="editTipoEnsaio"][value="${radioEncontrado}"]`).checked = true;
+        } else {
+            // É "Outros"
+            document.getElementById('editOutros').checked = true;
+            document.getElementById('editOutrosEnsaioField').style.display = 'block';
+            document.getElementById('editOutrosEnsaioTexto').value = ensaiosExtras;
+        }
+    } else {
+        document.getElementById('editEnsaiosExtrasOptions').style.display = 'none';
+    }
+    
     new bootstrap.Modal(document.getElementById('editarEventoModal')).show();
 }
 
 function salvarEdicaoEvento() {
+    // Processar ensaios extras
+    const temEnsaios = document.getElementById('editTemEnsaiosExtras').checked;
+    let ensaiosExtras = 'Nenhum';
+    
+    if (temEnsaios) {
+        const tipoSelecionado = document.querySelector('input[name="editTipoEnsaio"]:checked');
+        if (tipoSelecionado) {
+            if (tipoSelecionado.value === 'Outros') {
+                ensaiosExtras = document.getElementById('editOutrosEnsaioTexto').value || 'Outros';
+            } else {
+                ensaiosExtras = tipoSelecionado.value;
+            }
+        }
+    }
+    
     const dados = {
         cliente: document.getElementById('editCliente').value,
         tipo_servico: document.getElementById('editTipoServico').value,
@@ -267,6 +414,7 @@ function salvarEdicaoEvento() {
         valor_negociado: parseFloat(document.getElementById('editValorNegociado').value),
         valor_pago: parseFloat(document.getElementById('editValorPago').value),
         status: document.getElementById('editStatus').value,
+        ensaios_extras: ensaiosExtras,
         observacoes: document.getElementById('editObservacoes').value
     };
     

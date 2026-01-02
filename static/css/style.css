@@ -227,6 +227,11 @@ canvas {
 .quick-action-btn.btn-info {
     background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
     border: none;
+    color: white !important;
+}
+
+.quick-action-btn.btn-info small {
+    color: rgba(255,255,255,0.9) !important;
 }
 
 .quick-action-btn.btn-warning {

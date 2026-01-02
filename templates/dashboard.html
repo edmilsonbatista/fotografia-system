@@ -4,61 +4,68 @@
 
 {% block content %}
 <div class="row mb-4">
+    <!-- Estatísticas Principais -->
     <div class="col-md-3">
-        <div class="card bg-primary text-white">
+        <div class="card bg-primary text-white h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h4>{{ total_eventos }}</h4>
+                        <h3>{{ total_eventos|numero }}</h3>
                         <p class="mb-0">Total de Eventos</p>
+                        <small class="opacity-75">{{ eventos_mes|numero }} este mês</small>
                     </div>
                     <div class="align-self-center">
-                        <i class="fas fa-calendar fa-2x"></i>
+                        <i class="fas fa-calendar fa-2x opacity-75"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4>R$ {{ "%.2f"|format(receita_total) }}</h4>
-                        <p class="mb-0">Receita Total</p>
+    
+    <!-- Valores Financeiros -->
+    <div class="col-md-6">
+        <div class="row h-100">
+            <div class="col-6">
+                <div class="card bg-success text-white h-100">
+                    <div class="card-body">
+                        <div class="text-center">
+                            <h4>{{ total_negociado|moeda }}</h4>
+                            <p class="mb-1">Total Negociado</p>
+                            <small class="opacity-75">{{ total_eventos|numero }} contratos</small>
+                        </div>
                     </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-dollar-sign fa-2x"></i>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="card bg-info text-white h-100">
+                    <div class="card-body">
+                        <div class="text-center">
+                            <h4>{{ total_recebido|moeda }}</h4>
+                            <p class="mb-1">Total Recebido</p>
+                            <small class="opacity-75">{{ "%.0f"|format((total_recebido/total_negociado*100) if total_negociado > 0 else 0) }}% recebido</small>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+    
+    <!-- Status dos Eventos -->
     <div class="col-md-3">
-        <div class="card bg-info text-white">
+        <div class="card bg-warning text-dark h-100">
             <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4>{{ eventos_mes }}</h4>
-                        <p class="mb-0">Eventos Este Mês</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-calendar-check fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4>{{ eventos_agendados }}</h4>
-                        <p class="mb-0">Agendados</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-clock fa-2x"></i>
+                <div class="text-center">
+                    <h3>{{ eventos_agendados|numero }}</h3>
+                    <p class="mb-1">Agendados</p>
+                    <small>{{ eventos_realizados|numero }} realizados</small>
+                    {% if eventos_cancelados > 0 %}
+                        <small class="d-block">{{ eventos_cancelados|numero }} cancelados</small>
+                    {% endif %}
+                    <div class="mt-2">
+                        <div class="progress" style="height: 6px;">
+                            {% set total_status = eventos_agendados + eventos_realizados + eventos_cancelados %}
+                            <div class="progress-bar bg-success" style="width: {{ (eventos_realizados/total_status*100) if total_status > 0 else 0 }}%"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -131,8 +138,9 @@
         
         <!-- Próximos Eventos -->
         <div class="card">
-            <div class="card-header">
-                <h5>Próximos Eventos</h5>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-calendar-alt"></i> Eventos Recentes</h5>
+                <span class="badge bg-primary">{{ proximos_eventos|length }} eventos</span>
             </div>
             <div class="card-body">
                 {% if proximos_eventos %}
@@ -144,14 +152,31 @@
                                     <div class="text-center">
                                         <h6 class="mb-1 text-primary">{{ evento.cliente }}</h6>
                                         <p class="mb-1 small text-muted">{{ evento.tipo_servico }}</p>
-                                        <p class="mb-1 small"><i class="fas fa-calendar"></i> {{ evento.data_evento.strftime('%d/%m/%Y') }}</p>
-                                        <span class="badge bg-success">R$ {{ "%.2f"|format(evento.valor_negociado) }}</span>
+                                        <p class="mb-2 small"><i class="fas fa-calendar"></i> {{ evento.data_evento.strftime('%d/%m/%Y') }}</p>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="badge bg-success">{{ evento.valor_negociado|moeda }}</span>
+                                            {% if evento.status == 'Realizado' %}
+                                                <small class="text-success"><i class="fas fa-check-circle"></i> Realizado</small>
+                                            {% elif evento.valor_pago > 0 %}
+                                                <small class="text-info"><i class="fas fa-coins"></i> Sinal pago</small>
+                                            {% else %}
+                                                <small class="text-warning"><i class="fas fa-clock"></i> Pendente</small>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         {% endfor %}
                     </div>
+                    
+                    {% if proximos_eventos|length >= 5 %}
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('listar_eventos') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-list"></i> Ver Todos os Eventos
+                        </a>
+                    </div>
+                    {% endif %}
                     
                     <!-- Modal único para detalhes -->
                     <div class="modal fade" id="detalhesEventoModal" tabindex="-1" aria-labelledby="detalhesEventoModalLabel" aria-hidden="true">
@@ -248,7 +273,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Valor</label>
-                        <input type="number" name="valor" class="form-control" step="0.01" required>
+                        <input type="number" name="valor" class="form-control" step="0.01" required onblur="formatarCampoMoeda(this)">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Descrição</label>
@@ -286,8 +311,8 @@ function abrirDetalhesEvento(id, cliente, tipoServico, dataEvento, valorNegociad
     document.getElementById('modalCliente').textContent = cliente;
     document.getElementById('modalTipoServico').textContent = tipoServico;
     document.getElementById('modalDataEvento').textContent = dataEvento;
-    document.getElementById('modalValorNegociado').textContent = 'R$ ' + valorNegociado.toFixed(2).replace('.', ',');
-    document.getElementById('modalValorPago').textContent = 'R$ ' + valorPago.toFixed(2).replace('.', ',');
+    document.getElementById('modalValorNegociado').textContent = formatarMoeda(valorNegociado);
+    document.getElementById('modalValorPago').textContent = formatarMoeda(valorPago);
     document.getElementById('modalStatus').innerHTML = `<span class="badge bg-${status === 'Agendado' ? 'warning' : status === 'Realizado' ? 'success' : 'danger'}">${status}</span>`;
     document.getElementById('modalDataCadastro').textContent = dataCadastro;
     
@@ -305,75 +330,121 @@ function abrirDetalhesEvento(id, cliente, tipoServico, dataEvento, valorNegociad
     modal.show();
 }
 
+// Função para formatar moeda brasileira
+function formatarMoeda(valor) {
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(valor);
+}
+
+// Função para formatação automática de campos monetários
+function formatarCampoMoeda(campo) {
+    const valor = parseFloat(campo.value);
+    if (!isNaN(valor)) {
+        campo.value = valor.toFixed(2);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Aguardar Chart.js carregar
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js não carregou');
+        return;
+    }
+    
     // Carregar dados do dashboard
     fetch('/api/dashboard-data')
         .then(response => response.json())
         .then(data => {
+            console.log('Dados recebidos:', data);
+            
             // Gráfico de Receita
             const receitaCtx = document.getElementById('receitaChart').getContext('2d');
-            new Chart(receitaCtx, {
-                type: 'line',
-                data: {
-                    labels: data.receita_por_mes.map(item => item.mes),
-                    datasets: [{
-                        label: 'Receita (R$)',
-                        data: data.receita_por_mes.map(item => item.receita),
-                        borderColor: 'rgb(75, 192, 192)',
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        tension: 0.1,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
+            
+            // Verificar se há dados de receita
+            if (data.receita_por_mes && data.receita_por_mes.length > 0) {
+                new Chart(receitaCtx, {
+                    type: 'line',
+                    data: {
+                        labels: data.receita_por_mes.map(item => {
+                            const [ano, mes] = item.mes.split('-');
+                            return `${mes}/${ano}`;
+                        }),
+                        datasets: [{
+                            label: 'Receita (R$)',
+                            data: data.receita_por_mes.map(item => item.receita),
+                            borderColor: 'rgb(75, 192, 192)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            tension: 0.1,
+                            fill: true
+                        }]
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return 'R$ ' + value.toLocaleString('pt-BR');
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Receita Negociada por Mês (R$)'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return new Intl.NumberFormat('pt-BR', {
+                                            style: 'currency',
+                                            currency: 'BRL'
+                                        }).format(value);
+                                    }
                                 }
                             }
                         }
                     }
-                }
-            });
+                });
+            }
 
             // Gráfico de Serviços
             const servicosCtx = document.getElementById('servicosChart').getContext('2d');
-            new Chart(servicosCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: data.servicos_por_tipo.map(item => item.tipo),
-                    datasets: [{
-                        data: data.servicos_por_tipo.map(item => item.total),
-                        backgroundColor: [
-                            'rgba(255, 99, 132, 0.8)',
-                            'rgba(54, 162, 235, 0.8)',
-                            'rgba(255, 205, 86, 0.8)',
-                            'rgba(75, 192, 192, 0.8)'
-                        ],
-                        borderWidth: 2,
-                        borderColor: '#fff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
+            
+            if (data.servicos_por_tipo && data.servicos_por_tipo.length > 0) {
+                new Chart(servicosCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.servicos_por_tipo.map(item => item.tipo),
+                        datasets: [{
+                            data: data.servicos_por_tipo.map(item => item.total),
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.8)',
+                                'rgba(54, 162, 235, 0.8)',
+                                'rgba(255, 205, 86, 0.8)',
+                                'rgba(75, 192, 192, 0.8)'
+                            ],
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Distribuição de Eventos por Tipo de Serviço'
+                            }
                         }
                     }
-                }
-            });
+                });
+            }
         })
         .catch(error => {
             console.error('Erro ao carregar dados do dashboard:', error);

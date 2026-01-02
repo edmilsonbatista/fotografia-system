@@ -41,7 +41,7 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="valor_negociado" class="form-label">Valor Negociado (R$) *</label>
-                                <input type="number" class="form-control" id="valor_negociado" name="valor_negociado" step="0.01" required>
+                                <input type="number" class="form-control" id="valor_negociado" name="valor_negociado" step="0.01" required onblur="formatarCampoMoeda(this)">
                             </div>
                         </div>
                     </div>
@@ -49,6 +49,50 @@
                     <div class="mb-3">
                         <label for="observacoes" class="form-label">Observações</label>
                         <textarea class="form-control" id="observacoes" name="observacoes" rows="3" placeholder="Detalhes adicionais sobre o evento..."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="tem_ensaios_extras" name="tem_ensaios_extras" onchange="toggleEnsaiosExtras()">
+                            <label class="form-check-label" for="tem_ensaios_extras">
+                                Possui Ensaios Extras
+                            </label>
+                        </div>
+                        <div id="ensaios_extras_options" class="mt-3" style="display: none;">
+                            <label class="form-label">Tipo de Ensaio Extra</label>
+                            <div class="mb-2">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="tipo_ensaio" id="pre_wedding" value="Pre-Wedding">
+                                    <label class="form-check-label" for="pre_wedding">Pre-Wedding</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="tipo_ensaio" id="book_foto" value="Book Fotográfico (15 anos)">
+                                    <label class="form-check-label" for="book_foto">Book Fotográfico (15 anos)</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="tipo_ensaio" id="ensaio_casal" value="Ensaio Casal">
+                                    <label class="form-check-label" for="ensaio_casal">Ensaio Casal</label>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="tipo_ensaio" id="ensaio_individual" value="Ensaio Individual">
+                                    <label class="form-check-label" for="ensaio_individual">Ensaio Individual</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="tipo_ensaio" id="ensaio_familia" value="Ensaio Família">
+                                    <label class="form-check-label" for="ensaio_familia">Ensaio Família</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="tipo_ensaio" id="outros" value="Outros" onchange="toggleOutrosEnsaio()">
+                                    <label class="form-check-label" for="outros">Outros</label>
+                                </div>
+                            </div>
+                            <div id="outros_ensaio_field" class="mt-2" style="display: none;">
+                                <input type="text" class="form-control" id="outros_ensaio_texto" name="outros_ensaio_texto" placeholder="Especifique o tipo de ensaio...">
+                            </div>
+                            <input type="hidden" id="ensaios_extras" name="ensaios_extras" value="Nenhum">
+                        </div>
                     </div>
 
                     <div class="d-flex justify-content-between">
@@ -103,6 +147,62 @@
 
 {% block scripts %}
 <script>
+// Função para formatação automática de campos monetários
+function formatarCampoMoeda(campo) {
+    const valor = parseFloat(campo.value);
+    if (!isNaN(valor)) {
+        campo.value = valor.toFixed(2);
+    }
+}
+
+// Função para mostrar/ocultar opções de ensaios extras
+function toggleEnsaiosExtras() {
+    const checkbox = document.getElementById('tem_ensaios_extras');
+    const options = document.getElementById('ensaios_extras_options');
+    const hiddenField = document.getElementById('ensaios_extras');
+    
+    if (checkbox.checked) {
+        options.style.display = 'block';
+    } else {
+        options.style.display = 'none';
+        // Limpar seleções
+        document.querySelectorAll('input[name="tipo_ensaio"]').forEach(radio => radio.checked = false);
+        document.getElementById('outros_ensaio_field').style.display = 'none';
+        document.getElementById('outros_ensaio_texto').value = '';
+        hiddenField.value = 'Nenhum';
+    }
+}
+
+// Função para mostrar campo de texto quando "Outros" é selecionado
+function toggleOutrosEnsaio() {
+    const outrosRadio = document.getElementById('outros');
+    const outrosField = document.getElementById('outros_ensaio_field');
+    
+    if (outrosRadio.checked) {
+        outrosField.style.display = 'block';
+    } else {
+        outrosField.style.display = 'none';
+        document.getElementById('outros_ensaio_texto').value = '';
+    }
+}
+
+// Atualizar valor do campo hidden quando radio buttons mudam
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('input[name="tipo_ensaio"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const hiddenField = document.getElementById('ensaios_extras');
+            if (this.value === 'Outros') {
+                // Valor será definido pelo campo de texto
+                document.getElementById('outros_ensaio_texto').addEventListener('input', function() {
+                    hiddenField.value = this.value || 'Outros';
+                });
+            } else {
+                hiddenField.value = this.value;
+            }
+        });
+    });
+});
+
 // Definir data mínima como hoje
 document.getElementById('data_evento').min = new Date().toISOString().split('T')[0];
 
