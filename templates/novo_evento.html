@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Novo Evento - Sistema de Fotografia{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4>Cadastrar Novo Evento</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="cliente" class="form-label">Nome do Cliente *</label>
+                                <input type="text" class="form-control" id="cliente" name="cliente" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="tipo_servico" class="form-label">Tipo de Serviço *</label>
+                                <select class="form-select" id="tipo_servico" name="tipo_servico" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="Fotografia">Fotografia</option>
+                                    <option value="Storymaker">Storymaker</option>
+                                    <option value="Fotografia + Storymaker">Fotografia + Storymaker</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="data_evento" class="form-label">Data do Evento *</label>
+                                <input type="date" class="form-control" id="data_evento" name="data_evento" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="valor_negociado" class="form-label">Valor Negociado (R$) *</label>
+                                <input type="number" class="form-control" id="valor_negociado" name="valor_negociado" step="0.01" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="observacoes" class="form-label">Observações</label>
+                        <textarea class="form-control" id="observacoes" name="observacoes" rows="3" placeholder="Detalhes adicionais sobre o evento..."></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('listar_eventos') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Voltar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Salvar Evento
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Card com Dicas -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6><i class="fas fa-lightbulb"></i> Dicas para Precificação</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h6>Fotografia</h6>
+                        <ul class="list-unstyled small">
+                            <li>• Ensaio: R$ 200-500</li>
+                            <li>• Casamento: R$ 800-2000</li>
+                            <li>• Evento: R$ 300-800</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Storymaker</h6>
+                        <ul class="list-unstyled small">
+                            <li>• Vídeo curto: R$ 300-600</li>
+                            <li>• Documentário: R$ 1000-3000</li>
+                            <li>• Comercial: R$ 800-2500</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Pacote Completo</h6>
+                        <ul class="list-unstyled small">
+                            <li>• Desconto: 10-20%</li>
+                            <li>• Valor agregado</li>
+                            <li>• Fidelização</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Definir data mínima como hoje
+document.getElementById('data_evento').min = new Date().toISOString().split('T')[0];
+
+// Sugestões de preço baseadas no tipo de serviço
+document.getElementById('tipo_servico').addEventListener('change', function() {
+    const tipo = this.value;
+    const valorInput = document.getElementById('valor_negociado');
+    
+    let sugestao = '';
+    switch(tipo) {
+        case 'Fotografia':
+            sugestao = '500.00';
+            break;
+        case 'Storymaker':
+            sugestao = '800.00';
+            break;
+        case 'Fotografia + Storymaker':
+            sugestao = '1200.00';
+            break;
+    }
+    
+    if (sugestao && !valorInput.value) {
+        valorInput.value = sugestao;
+    }
+});
+</script>
+{% endblock %}

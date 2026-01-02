@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Sistema de Fotografia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ total_eventos }}</h4>
+                        <p class="mb-0">Total de Eventos</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-calendar fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>R$ {{ "%.2f"|format(receita_total) }}</h4>
+                        <p class="mb-0">Receita Total</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-dollar-sign fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ eventos_mes }}</h4>
+                        <p class="mb-0">Eventos Este Mês</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-calendar-check fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ eventos_agendados }}</h4>
+                        <p class="mb-0">Agendados</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Receita por Mês</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="receitaChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Serviços por Tipo</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="servicosChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Próximos Eventos</h5>
+            </div>
+            <div class="card-body">
+                {% if proximos_eventos %}
+                    <div class="list-group">
+                        {% for evento in proximos_eventos %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ evento.cliente }}</h6>
+                                <small>{{ evento.data_evento.strftime('%d/%m/%Y') }}</small>
+                            </div>
+                            <p class="mb-1">{{ evento.tipo_servico }}</p>
+                            <small>R$ {{ "%.2f"|format(evento.valor_negociado) }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Nenhum evento agendado</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between">
+                <h5>Ações Rápidas</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('novo_evento') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Novo Evento
+                    </a>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#transacaoModal">
+                        <i class="fas fa-cash-register"></i> Nova Transação
+                    </button>
+                    <a href="{{ url_for('listar_eventos') }}" class="btn btn-info">
+                        <i class="fas fa-list"></i> Ver Todos os Eventos
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Nova Transação -->
+<div class="modal fade" id="transacaoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('nova_transacao') }}" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nova Transação</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tipo</label>
+                        <select name="tipo" class="form-select" required>
+                            <option value="Entrada">Entrada</option>
+                            <option value="Saída">Saída</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Valor</label>
+                        <input type="number" name="valor" class="form-control" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descrição</label>
+                        <input type="text" name="descricao" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Data</label>
+                        <input type="date" name="data_transacao" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Categoria</label>
+                        <select name="categoria" class="form-select">
+                            <option value="">Selecione...</option>
+                            <option value="Equipamento">Equipamento</option>
+                            <option value="Transporte">Transporte</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Carregar dados do dashboard
+    fetch('/api/dashboard-data')
+        .then(response => response.json())
+        .then(data => {
+            // Gráfico de Receita
+            const receitaCtx = document.getElementById('receitaChart').getContext('2d');
+            new Chart(receitaCtx, {
+                type: 'line',
+                data: {
+                    labels: data.receita_por_mes.map(item => item.mes),
+                    datasets: [{
+                        label: 'Receita (R$)',
+                        data: data.receita_por_mes.map(item => item.receita),
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            // Gráfico de Serviços
+            const servicosCtx = document.getElementById('servicosChart').getContext('2d');
+            new Chart(servicosCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.servicos_por_tipo.map(item => item.tipo),
+                    datasets: [{
+                        data: data.servicos_por_tipo.map(item => item.total),
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.8)',
+                            'rgba(54, 162, 235, 0.8)',
+                            'rgba(255, 205, 86, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true
+                }
+            });
+        });
+});
+</script>
+{% endblock %}

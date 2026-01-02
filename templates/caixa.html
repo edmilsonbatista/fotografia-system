@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}Controle de Caixa - Sistema de Fotografia{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Controle de Caixa</h2>
+    <div>
+        <span class="badge bg-{% if saldo >= 0 %}success{% else %}danger{% endif %} fs-6 me-3">
+            Saldo: R$ {{ "%.2f"|format(saldo) }}
+        </span>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#transacaoModal">
+            <i class="fas fa-plus"></i> Nova Transação
+        </button>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h4>R$ {{ "%.2f"|format(transacoes|selectattr('tipo', 'equalto', 'Entrada')|sum(attribute='valor')) }}</h4>
+                <p class="mb-0">Total de Entradas</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body text-center">
+                <h4>R$ {{ "%.2f"|format(transacoes|selectattr('tipo', 'equalto', 'Saída')|sum(attribute='valor')) }}</h4>
+                <p class="mb-0">Total de Saídas</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-{% if saldo >= 0 %}primary{% else %}warning{% endif %} text-white">
+            <div class="card-body text-center">
+                <h4>R$ {{ "%.2f"|format(saldo) }}</h4>
+                <p class="mb-0">Saldo Atual</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h4>{{ transacoes|length }}</h4>
+                <p class="mb-0">Total de Transações</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5>Histórico de Transações</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th>Descrição</th>
+                        <th>Categoria</th>
+                        <th>Valor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transacao in transacoes %}
+                    <tr>
+                        <td>{{ transacao.data_transacao.strftime('%d/%m/%Y') }}</td>
+                        <td>
+                            {% if transacao.tipo == 'Entrada' %}
+                                <span class="badge bg-success">{{ transacao.tipo }}</span>
+                            {% else %}
+                                <span class="badge bg-danger">{{ transacao.tipo }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ transacao.descricao }}</td>
+                        <td>
+                            {% if transacao.categoria %}
+                                <span class="badge bg-secondary">{{ transacao.categoria }}</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="{% if transacao.tipo == 'Entrada' %}text-success{% else %}text-danger{% endif %}">
+                            {% if transacao.tipo == 'Entrada' %}+{% else %}-{% endif %}R$ {{ "%.2f"|format(transacao.valor) }}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">Nenhuma transação registrada</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Nova Transação -->
+<div class="modal fade" id="transacaoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('nova_transacao') }}" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nova Transação</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tipo *</label>
+                        <select name="tipo" class="form-select" required onchange="atualizarCategorias(this.value)">
+                            <option value="">Selecione...</option>
+                            <option value="Entrada">Entrada</option>
+                            <option value="Saída">Saída</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Valor (R$) *</label>
+                        <input type="number" name="valor" class="form-control" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descrição *</label>
+                        <input type="text" name="descricao" class="form-control" required placeholder="Ex: Pagamento do cliente João">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Data *</label>
+                        <input type="date" name="data_transacao" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Categoria</label>
+                        <select name="categoria" id="categoriaSelect" class="form-select">
+                            <option value="">Selecione uma categoria...</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Transação</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Definir data padrão como hoje
+document.querySelector('input[name="data_transacao"]').value = new Date().toISOString().split('T')[0];
+
+function atualizarCategorias(tipo) {
+    const categoriaSelect = document.getElementById('categoriaSelect');
+    categoriaSelect.innerHTML = '<option value="">Selecione uma categoria...</option>';
+    
+    let categorias = [];
+    
+    if (tipo === 'Entrada') {
+        categorias = [
+            'Pagamento de Cliente',
+            'Sinal/Entrada',
+            'Venda de Equipamento',
+            'Outros'
+        ];
+    } else if (tipo === 'Saída') {
+        categorias = [
+            'Equipamento',
+            'Transporte',
+            'Marketing',
+            'Manutenção',
+            'Alimentação',
+            'Hospedagem',
+            'Impostos',
+            'Outros'
+        ];
+    }
+    
+    categorias.forEach(categoria => {
+        const option = document.createElement('option');
+        option.value = categoria;
+        option.textContent = categoria;
+        categoriaSelect.appendChild(option);
+    });
+}
+</script>
+{% endblock %}

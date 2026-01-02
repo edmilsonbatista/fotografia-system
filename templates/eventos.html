@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Eventos - Sistema de Fotografia{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Eventos</h2>
+    <a href="{{ url_for('novo_evento') }}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Novo Evento
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Tipo de Serviço</th>
+                        <th>Data do Evento</th>
+                        <th>Valor Negociado</th>
+                        <th>Valor Pago</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for evento in eventos %}
+                    <tr>
+                        <td>{{ evento.cliente }}</td>
+                        <td>{{ evento.tipo_servico }}</td>
+                        <td>{{ evento.data_evento.strftime('%d/%m/%Y') }}</td>
+                        <td>R$ {{ "%.2f"|format(evento.valor_negociado) }}</td>
+                        <td>R$ {{ "%.2f"|format(evento.valor_pago) }}</td>
+                        <td>
+                            {% if evento.status == 'Agendado' %}
+                                <span class="badge bg-warning">{{ evento.status }}</span>
+                            {% elif evento.status == 'Realizado' %}
+                                <span class="badge bg-success">{{ evento.status }}</span>
+                            {% else %}
+                                <span class="badge bg-danger">{{ evento.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if evento.valor_pago < evento.valor_negociado %}
+                            <button class="btn btn-sm btn-success" onclick="registrarPagamento({{ evento.id }}, {{ evento.valor_negociado - evento.valor_pago }})">
+                                <i class="fas fa-dollar-sign"></i> Pagar
+                            </button>
+                            {% endif %}
+                            <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#detalhesModal{{ evento.id }}">
+                                <i class="fas fa-eye"></i> Ver
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- Modal de Detalhes -->
+                    <div class="modal fade" id="detalhesModal{{ evento.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Detalhes do Evento</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p><strong>Cliente:</strong> {{ evento.cliente }}</p>
+                                    <p><strong>Tipo de Serviço:</strong> {{ evento.tipo_servico }}</p>
+                                    <p><strong>Data do Evento:</strong> {{ evento.data_evento.strftime('%d/%m/%Y') }}</p>
+                                    <p><strong>Valor Negociado:</strong> R$ {{ "%.2f"|format(evento.valor_negociado) }}</p>
+                                    <p><strong>Valor Pago:</strong> R$ {{ "%.2f"|format(evento.valor_pago) }}</p>
+                                    <p><strong>Status:</strong> {{ evento.status }}</p>
+                                    <p><strong>Data de Cadastro:</strong> {{ evento.data_cadastro.strftime('%d/%m/%Y %H:%M') }}</p>
+                                    {% if evento.observacoes %}
+                                    <p><strong>Observações:</strong> {{ evento.observacoes }}</p>
+                                    {% endif %}
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Pagamento -->
+<div class="modal fade" id="pagamentoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Registrar Pagamento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Valor a Pagar</label>
+                    <input type="number" id="valorPagamento" class="form-control" step="0.01">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="confirmarPagamento()">Confirmar Pagamento</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let eventoIdPagamento = null;
+
+function registrarPagamento(eventoId, valorRestante) {
+    eventoIdPagamento = eventoId;
+    document.getElementById('valorPagamento').value = valorRestante.toFixed(2);
+    new bootstrap.Modal(document.getElementById('pagamentoModal')).show();
+}
+
+function confirmarPagamento() {
+    const valor = parseFloat(document.getElementById('valorPagamento').value);
+    
+    fetch(`/evento/${eventoIdPagamento}/pagar`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            evento_id: eventoIdPagamento,
+            valor: valor
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    });
+}
+</script>
+{% endblock %}

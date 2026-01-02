@@ -1,0 +1,64 @@
+🚀 GUIA DE INÍCIO RÁPIDO - SISTEMA DE FOTOGRAFIA
+==================================================
+
+📁 LOCALIZAÇÃO DO PROJETO:
+C:\Users\edmil\Desktop\fotografia-sistema
+
+🔧 COMO INICIAR:
+
+Opção 1 - Automática (Recomendada):
+   • Clique duas vezes no arquivo "iniciar.bat"
+   • O sistema fará tudo automaticamente
+
+Opção 2 - Manual:
+   1. Abra o Prompt de Comando
+   2. Navegue até: cd C:\Users\edmil\Desktop\fotografia-sistema
+   3. Execute: python app.py
+
+🌐 ACESSO AO SISTEMA:
+   • Abra seu navegador
+   • Vá para: http://localhost:5000
+
+📊 FUNCIONALIDADES PRINCIPAIS:
+
+1. DASHBOARD (Página Inicial)
+   ✓ Visão geral dos negócios
+   ✓ Gráficos de receita
+   ✓ Próximos eventos
+   ✓ Estatísticas gerais
+
+2. EVENTOS
+   ✓ Cadastrar novos eventos
+   ✓ Gerenciar pagamentos
+   ✓ Controlar status
+   ✓ Histórico completo
+
+3. CONTROLE DE CAIXA
+   ✓ Registrar entradas e saídas
+   ✓ Categorizar transações
+   ✓ Acompanhar saldo
+   ✓ Relatórios financeiros
+
+💡 DADOS DE EXEMPLO:
+O sistema já vem com dados de exemplo para você testar:
+   • 5 eventos cadastrados
+   • 8 transações registradas
+   • Receita total: R$ 3.100,00
+   • Gastos totais: R$ 550,00
+   • Saldo atual: R$ 2.550,00
+
+🎯 PRIMEIROS PASSOS:
+1. Explore o dashboard para entender as funcionalidades
+2. Cadastre um novo evento de teste
+3. Registre uma transação no caixa
+4. Veja como os gráficos se atualizam
+
+⚠️ IMPORTANTE:
+   • Mantenha o Prompt de Comando aberto enquanto usa o sistema
+   • Para parar o sistema, pressione Ctrl+C no Prompt
+   • Seus dados ficam salvos no arquivo "fotografia.db"
+
+📞 SUPORTE:
+Se tiver dúvidas, consulte o arquivo README.md para instruções detalhadas.
+
+BOA SORTE COM SEU NEGÓCIO! 📸🎬

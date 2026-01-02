@@ -1,0 +1,56 @@
+🚀 GUIA PARA PUBLICAR NO GITHUB
+================================
+
+✅ PREPARAÇÃO CONCLUÍDA:
+   • Repositório Git inicializado
+   • Arquivos adicionados e commitados
+   • .gitignore configurado
+
+📋 PRÓXIMOS PASSOS:
+
+1️⃣ CRIAR REPOSITÓRIO NO GITHUB:
+   • Acesse: https://github.com/new
+   • Nome do repositório: fotografia-sistema
+   • Descrição: Sistema web para gestão de fotografia e storymaker
+   • Público ou Privado (sua escolha)
+   • ❌ NÃO marque "Add a README file"
+   • ❌ NÃO marque "Add .gitignore"
+   • ❌ NÃO marque "Choose a license"
+   • Clique em "Create repository"
+
+2️⃣ CONECTAR E ENVIAR:
+   Após criar o repositório, execute estes comandos:
+
+   cd C:\Users\edmil\Desktop\fotografia-sistema
+   
+   git remote add origin https://github.com/edmilsonbatista/fotografia-sistema.git
+   git branch -M main
+   git push -u origin main
+
+   ⚠️ SUBSTITUA "SEU_USUARIO" pelo seu nome de usuário do GitHub!
+
+3️⃣ EXEMPLO COMPLETO:
+   Se seu usuário for "edmilsonbatista", os comandos seriam:
+   
+   git remote add origin https://github.com/edmilsonbatista/fotografia-sistema.git
+   git branch -M main
+   git push -u origin main
+
+4️⃣ AUTENTICAÇÃO:
+   • Se for a primeira vez, o GitHub pedirá login
+   • Use seu usuário e senha do GitHub
+   • Ou configure um token de acesso pessoal
+
+🎯 RESULTADO FINAL:
+   Seu projeto estará disponível em:
+   https://github.com/edmilsonbatista/fotografia-sistema
+
+📝 DESCRIÇÃO SUGERIDA PARA O REPOSITÓRIO:
+"Sistema web completo para gestão de negócios de fotografia e produção de vídeos. Inclui controle de eventos, caixa, dashboard com gráficos e relatórios financeiros. Desenvolvido em Python Flask."
+
+🏷️ TAGS SUGERIDAS:
+python, flask, photography, business-management, dashboard, sqlite, bootstrap
+
+💡 DICA:
+Após publicar, você pode clonar o repositório em outros computadores com:
+git clone https://github.com/edmilsonbatista/fotografia-sistema.git
