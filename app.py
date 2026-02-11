@@ -62,29 +62,42 @@ def dashboard():
     
     # Estatísticas básicas
     total_eventos = Evento.query.count()
+    
+    # Eventos do mês atual (apenas agendados e realizados)
     eventos_mes = Evento.query.filter(
-        db.func.strftime('%Y-%m', Evento.data_evento) == hoje.strftime('%Y-%m')
+        db.func.strftime('%Y-%m', Evento.data_evento) == hoje.strftime('%Y-%m'),
+        Evento.status.in_(['Agendado', 'Realizado'])
     ).count()
     
     # Receitas (baseadas em valor_pago - dinheiro realmente recebido)
     receita_total = db.session.query(db.func.sum(Evento.valor_pago)).scalar() or 0
+    
+    # Receita do mês (apenas eventos realizados ou com pagamento)
     receita_mes = db.session.query(db.func.sum(Evento.valor_pago)).filter(
-        db.func.strftime('%Y-%m', Evento.data_evento) == hoje.strftime('%Y-%m')
+        db.func.strftime('%Y-%m', Evento.data_evento) == hoje.strftime('%Y-%m'),
+        Evento.valor_pago > 0
     ).scalar() or 0
     
-    # Status dos eventos
+    # Status dos eventos (todos os eventos, independente da data)
     eventos_agendados = Evento.query.filter_by(status='Agendado').count()
     eventos_realizados = Evento.query.filter_by(status='Realizado').count()
     eventos_cancelados = Evento.query.filter_by(status='Cancelado').count()
+    eventos_pendentes = Evento.query.filter_by(status='Pendente').count()
     
-    # Valores financeiros totais
-    todos_eventos = Evento.query.all()
+    # Valores financeiros totais (excluir eventos cancelados)
+    todos_eventos = Evento.query.filter(Evento.status != 'Cancelado').all()
     total_negociado = sum(e.valor_negociado for e in todos_eventos)
     total_recebido = sum(e.valor_pago for e in todos_eventos)
     total_pendente = total_negociado - total_recebido
     
-    # Próximos eventos (5 mais próximos por data)
-    proximos_eventos = Evento.query.order_by(Evento.data_evento.asc()).limit(5).all()
+    # Próximos eventos (apenas agendados e pendentes, futuros ou de hoje)
+    proximos_eventos = Evento.query.filter(
+        Evento.data_evento >= hoje,
+        Evento.status.in_(['Agendado', 'Pendente'])
+    ).order_by(Evento.data_evento.asc()).limit(5).all()
+    
+    # Todos os eventos para o calendário
+    todos_eventos_calendario = Evento.query.all()
     
     return render_template('dashboard.html',
                          total_eventos=total_eventos,
@@ -94,11 +107,12 @@ def dashboard():
                          eventos_agendados=eventos_agendados,
                          eventos_realizados=eventos_realizados,
                          eventos_cancelados=eventos_cancelados,
+                         eventos_pendentes=eventos_pendentes,
                          total_negociado=total_negociado,
                          total_recebido=total_recebido,
                          total_pendente=total_pendente,
                          proximos_eventos=proximos_eventos,
-                         eventos=todos_eventos)
+                         eventos=todos_eventos_calendario)
 
 @app.route('/eventos')
 def listar_eventos():
@@ -397,16 +411,20 @@ def importar_transacoes():
 @app.route('/api/dashboard-data')
 def dashboard_data():
     try:
-        # Receita por mês (baseada no valor negociado)
+        # Receita por mês (baseada no valor negociado, excluindo cancelados)
         receita_por_mes = db.session.query(
             db.func.strftime('%Y-%m', Evento.data_evento).label('mes'),
             db.func.sum(Evento.valor_negociado).label('receita')
+        ).filter(
+            Evento.status != 'Cancelado'
         ).group_by('mes').order_by('mes').all()
         
-        # Serviços por tipo (todos os eventos)
+        # Serviços por tipo (apenas agendados e realizados)
         servicos_por_tipo = db.session.query(
             Evento.tipo_servico,
             db.func.count(Evento.id).label('total')
+        ).filter(
+            Evento.status.in_(['Agendado', 'Realizado', 'Pendente'])
         ).group_by(Evento.tipo_servico).all()
         
         return jsonify({
