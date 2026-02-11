@@ -32,7 +32,7 @@ def inserir_evento_exemplo():
             tipo_servico="Fotografia",
             data_evento=date(2024, 3, 15),
             valor_negociado=1000.00,
-            valor_pago=500.00,
+            valor_pago=400.00,
             status="Agendado",
             observacoes="Evento inserido via script"
         )
@@ -45,7 +45,7 @@ def inserir_transacao_exemplo():
     with app.app_context():
         transacao = Transacao(
             tipo="Entrada",
-            valor=500.00,
+            valor=400.00,
             descricao="Pagamento via script",
             data_transacao=date.today(),
             categoria="Pagamento de Cliente"

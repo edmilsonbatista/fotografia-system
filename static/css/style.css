@@ -1,451 +1,460 @@
 /* Estilos personalizados para o Sistema de Fotografia */
 
 body {
-    background-color: #f8f9fa;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .navbar-brand {
-    font-weight: bold;
-    font-size: 1.5rem;
+  font-weight: bold;
+  font-size: 1.5rem;
 }
 
 .card {
-    border: none;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
 }
 
 .card-header {
-    background-color: #fff;
-    border-bottom: 2px solid #e9ecef;
-    font-weight: 600;
+  background-color: #fff;
+  border-bottom: 2px solid #e9ecef;
+  font-weight: 600;
 }
 
 .btn {
-    border-radius: 6px;
-    font-weight: 500;
+  border-radius: 6px;
+  font-weight: 400;
 }
 
 .table {
-    margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 .table th {
-    border-top: none;
-    font-weight: 600;
-    color: #495057;
-    background-color: #f8f9fa;
+  border-top: none;
+  font-weight: 600;
+  color: #495057;
+  background-color: #f8f9fa;
 }
 
 .badge {
-    font-size: 0.75em;
-    padding: 0.5em 0.75em;
+  font-size: 0.75em;
+  padding: 0.5em 0.75em;
 }
 
 .list-group-item {
-    border: none;
-    border-radius: 8px !important;
-    margin-bottom: 5px;
-    background-color: #f8f9fa;
+  border: none;
+  border-radius: 8px !important;
+  margin-bottom: 5px;
+  background-color: #f8f9fa;
 }
 
 .modal-content {
-    border-radius: 10px;
-    border: none;
+  border-radius: 10px;
+  border: none;
 }
 
-.form-control, .form-select {
-    border-radius: 6px;
-    border: 1px solid #ced4da;
+.form-control,
+.form-select {
+  border-radius: 6px;
+  border: 1px solid #ced4da;
 }
 
-.form-control:focus, .form-select:focus {
-    border-color: #0d6efd;
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+.form-control:focus,
+.form-select:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
 }
 
 /* Cores personalizadas para os cards de estatísticas */
 .bg-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
 }
 
 .bg-success {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
 }
 
 .bg-info {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
 }
 
 .bg-warning {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%) !important;
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%) !important;
 }
 
 .bg-danger {
-    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%) !important;
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%) !important;
 }
 
 /* Animações suaves */
-.card, .btn, .form-control, .form-select {
-    transition: all 0.3s ease;
+.card,
+.btn,
+.form-control,
+.form-select {
+  transition: all 0.3s ease;
 }
 
 .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
 .btn:hover {
-    transform: translateY(-1px);
+  transform: translateY(-1px);
 }
 
 /* Responsividade melhorada */
 @media (max-width: 768px) {
-    .container {
-        padding: 0 15px;
-    }
-    
-    .card-body {
-        padding: 1rem;
-    }
-    
-    .table-responsive {
-        font-size: 0.9rem;
-    }
+  .container {
+    padding: 0 15px;
+  }
+
+  .card-body {
+    padding: 1rem;
+  }
+
+  .table-responsive {
+    font-size: 0.9rem;
+  }
 }
 
 /* Estilo para gráficos */
 canvas {
-    max-height: 400px;
+  max-height: 400px;
 }
 
 /* Melhorias na navegação */
 .navbar-nav .nav-link {
-    margin: 0 10px;
-    border-radius: 6px;
-    transition: background-color 0.3s ease;
+  margin: 0 10px;
+  border-radius: 6px;
+  transition: background-color 0.3s ease;
 }
 
 .navbar-nav .nav-link:hover {
-    background-color: rgba(255,255,255,0.1);
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Estilo para badges de status */
 .badge.bg-warning {
-    color: #000 !important;
+  color: #000 !important;
 }
 
 /* Melhorias nos modais */
 .modal-header {
-    border-bottom: 2px solid #e9ecef;
+  border-bottom: 2px solid #e9ecef;
 }
 
 .modal-footer {
-    border-top: 2px solid #e9ecef;
+  border-top: 2px solid #e9ecef;
 }
 
 /* Estilo para valores monetários */
 .text-success {
-    font-weight: 600;
+  font-weight: 600;
 }
 
 .text-danger {
-    font-weight: 600;
+  font-weight: 600;
 }
 
 /* Loading spinner personalizado */
 .spinner-border-sm {
-    width: 1rem;
-    height: 1rem;
+  width: 1rem;
+  height: 1rem;
 }
 
 /* Estilos para botões de ação rápida */
 .quick-action-btn {
-    height: 120px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-decoration: none;
-    border: none;
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s ease;
+  height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-decoration: none;
+  border: none;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
 .quick-action-btn:hover {
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.2) !important;
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2) !important;
 }
 
 .quick-action-btn:active {
-    transform: translateY(-1px) scale(0.98);
+  transform: translateY(-1px) scale(0.98);
 }
 
 .quick-action-btn i {
-    transition: all 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .quick-action-btn:hover i {
-    transform: scale(1.1);
+  transform: scale(1.1);
 }
 
 /* Efeito de pulso nos botões */
 .quick-action-btn::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.3);
-    transition: width 0.6s, height 0.6s, top 0.6s, left 0.6s;
-    transform: translate(-50%, -50%);
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transition:
+    width 0.6s,
+    height 0.6s,
+    top 0.6s,
+    left 0.6s;
+  transform: translate(-50%, -50%);
 }
 
 .quick-action-btn:active::before {
-    width: 300px;
-    height: 300px;
-    top: 50%;
-    left: 50%;
+  width: 300px;
+  height: 300px;
+  top: 50%;
+  left: 50%;
 }
 
 /* Cores vibrantes para os botões */
 .quick-action-btn.btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
 }
 
 .quick-action-btn.btn-success {
-    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-    border: none;
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  border: none;
 }
 
 .quick-action-btn.btn-info {
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    border: none;
-    color: white !important;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border: none;
+  color: white !important;
 }
 
 .quick-action-btn.btn-info small {
-    color: rgba(255,255,255,0.9) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
 }
 
 .quick-action-btn.btn-warning {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    border: none;
-    color: white !important;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  border: none;
+  color: white !important;
 }
 
 .quick-action-btn.btn-warning small {
-    color: rgba(255,255,255,0.9) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
 }
 
 /* Botões de ação rápida menores */
 .quick-action-btn-small {
-    height: 80px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-decoration: none;
-    border: none;
-    transition: all 0.3s ease;
+  height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-decoration: none;
+  border: none;
+  transition: all 0.3s ease;
 }
 
 .quick-action-btn-small:hover {
-    transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.15) !important;
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
 }
 
 .quick-action-btn-small i {
-    transition: all 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .quick-action-btn-small:hover i {
-    transform: scale(1.1);
+  transform: scale(1.1);
 }
 
 /* Cards de eventos com borda colorida */
 .border-left-primary {
-    border-left: 4px solid #0d6efd !important;
-    transition: all 0.3s ease;
+  border-left: 4px solid #0d6efd !important;
+  transition: all 0.3s ease;
 }
 
 .border-left-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 /* Cards de eventos clicáveis */
 .evento-card {
-    transition: all 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .evento-card:hover {
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.15) !important;
-    border-left-color: #0056b3 !important;
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+  border-left-color: #0056b3 !important;
 }
 
 .evento-card:active {
-    transform: translateY(-1px) scale(0.98);
+  transform: translateY(-1px) scale(0.98);
 }
 
 /* Estilos do Calendário */
 .calendario-container {
-    max-width: 100%;
-    margin: 0 auto;
+  max-width: 100%;
+  margin: 0 auto;
 }
 
 .calendario-header {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 1px;
-    margin-bottom: 10px;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  margin-bottom: 10px;
 }
 
 .dia-semana {
-    text-align: center;
-    font-weight: bold;
-    padding: 10px 5px;
-    background-color: #f8f9fa;
-    color: #495057;
-    border-radius: 5px;
-    font-size: 0.9rem;
+  text-align: center;
+  font-weight: bold;
+  padding: 10px 5px;
+  background-color: #f8f9fa;
+  color: #495057;
+  border-radius: 5px;
+  font-size: 0.9rem;
 }
 
 .calendario-dias {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 2px;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
 }
 
 .dia-calendario {
-    aspect-ratio: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 8px 4px;
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    background-color: #fff;
-    position: relative;
-    min-height: 60px;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 8px 4px;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-color: #fff;
+  position: relative;
+  min-height: 60px;
 }
 
 .dia-calendario:hover {
-    background-color: #e3f2fd;
-    border-color: #2196f3;
-    transform: scale(1.05);
+  background-color: #e3f2fd;
+  border-color: #2196f3;
+  transform: scale(1.05);
 }
 
 .dia-calendario.hoje {
-    background-color: #2196f3;
-    color: white;
-    font-weight: bold;
+  background-color: #2196f3;
+  color: white;
+  font-weight: bold;
 }
 
 .dia-calendario.outro-mes {
-    color: #ccc;
-    background-color: #f8f9fa;
+  color: #ccc;
+  background-color: #f8f9fa;
 }
 
 .dia-calendario.selecionado {
-    background-color: #4caf50;
-    color: white;
-    border-color: #4caf50;
+  background-color: #4caf50;
+  color: white;
+  border-color: #4caf50;
 }
 
 .numero-dia {
-    font-weight: bold;
-    font-size: 0.9rem;
-    margin-bottom: 2px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  margin-bottom: 2px;
 }
 
 .eventos-dia {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    width: 100%;
-    align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  align-items: center;
 }
 
 .evento-ponto {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    margin: 1px 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin: 1px 0;
 }
 
 .evento-ponto.agendado {
-    background-color: #ffc107;
+  background-color: #ffc107;
 }
 
 .evento-ponto.realizado {
-    background-color: #28a745;
+  background-color: #28a745;
 }
 
 .evento-ponto.cancelado {
-    background-color: #dc3545;
+  background-color: #dc3545;
 }
 
 .evento-resumo {
-    font-size: 0.7rem;
-    text-align: center;
-    margin-top: 2px;
-    line-height: 1;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  font-size: 0.7rem;
+  text-align: center;
+  margin-top: 2px;
+  line-height: 1;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .evento-item {
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    padding: 10px;
-    margin-bottom: 8px;
-    border-left: 4px solid #0d6efd;
-    cursor: pointer;
-    transition: all 0.3s ease;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 8px;
+  border-left: 4px solid #0d6efd;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
 .evento-item:hover {
-    background-color: #e3f2fd;
-    transform: translateX(5px);
+  background-color: #e3f2fd;
+  transform: translateX(5px);
 }
 
 .evento-item.realizado {
-    border-left-color: #28a745;
+  border-left-color: #28a745;
 }
 
 .evento-item.cancelado {
-    border-left-color: #dc3545;
+  border-left-color: #dc3545;
 }
 
 @media (max-width: 768px) {
-    .dia-calendario {
-        min-height: 50px;
-        padding: 4px 2px;
-    }
-    
-    .numero-dia {
-        font-size: 0.8rem;
-    }
-    
-    .evento-resumo {
-        font-size: 0.6rem;
-    }
-    
-    .dia-semana {
-        padding: 8px 3px;
-        font-size: 0.8rem;
-    }
+  .dia-calendario {
+    min-height: 50px;
+    padding: 4px 2px;
+  }
+
+  .numero-dia {
+    font-size: 0.8rem;
+  }
+
+  .evento-resumo {
+    font-size: 0.6rem;
+  }
+
+  .dia-semana {
+    padding: 8px 3px;
+    font-size: 0.8rem;
+  }
 }

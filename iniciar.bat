@@ -38,7 +38,7 @@ echo ========================================
 echo   Sistema iniciado com sucesso!
 echo ========================================
 echo.
-echo Acesse: http://localhost:5000
+echo Acesse: http://localhost:4000
 echo.
 echo Pressione Ctrl+C para parar o sistema
 echo.

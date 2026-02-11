@@ -161,15 +161,19 @@ def registrar_pagamento(id):
     except Exception as e:
         db.session.rollback()
         print(f"Erro no pagamento: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 400
 
 @app.route('/caixa')
 def caixa():
-    transacoes = Transacao.query.order_by(Transacao.data_transacao.desc()).all()
+    # Buscar transações realizadas (Entrada e Saída) ordenadas por data crescente
+    transacoes_realizadas = Transacao.query.filter(
+        Transacao.tipo.in_(['Entrada', 'Saída'])
+    ).order_by(Transacao.data_transacao.asc()).all()
     
-    # Separar transações realizadas e pendentes
-    transacoes_realizadas = [t for t in transacoes if t.tipo in ['Entrada', 'Saída']]
-    transacoes_pendentes = [t for t in transacoes if t.tipo == 'Entrada Pendente']
+    # Buscar transações pendentes ordenadas por data crescente (mais próximas primeiro)
+    transacoes_pendentes = Transacao.query.filter(
+        Transacao.tipo == 'Entrada Pendente'
+    ).order_by(Transacao.data_transacao.asc()).all()
     
     # Calcular saldos
     entradas = db.session.query(db.func.sum(Transacao.valor)).filter(Transacao.tipo == 'Entrada').scalar() or 0
@@ -254,7 +258,7 @@ def reverter_pagamento(id):
     except Exception as e:
         db.session.rollback()
         print(f"Erro ao reverter pagamento: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 400
 
 @app.route('/transacao/<int:id>/excluir', methods=['POST'])
 def excluir_transacao(id):

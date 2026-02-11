@@ -59,7 +59,7 @@
                             <button class="btn btn-sm btn-warning" onclick="editarEvento({{ evento.id }}, '{{ evento.cliente }}', '{{ evento.tipo_servico }}', '{{ evento.data_evento.strftime('%Y-%m-%d') }}', {{ evento.valor_negociado }}, {{ evento.valor_pago }}, '{{ evento.status }}', '{{ evento.observacoes|replace("'", "\\'") }}', '{{ evento.ensaios_extras }}')">
                                 <i class="fas fa-edit"></i> Editar
                             </button>
-                            <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#detalhesModal{{ evento.id }}">
+                            <button class="btn btn-sm btn-info" onclick="verDetalhes('{{ evento.cliente }}', '{{ evento.tipo_servico }}', '{{ evento.data_evento.strftime('%d/%m/%Y') }}', {{ evento.valor_negociado }}, {{ evento.valor_pago }}, '{{ evento.status }}', '{{ evento.data_cadastro.strftime('%d/%m/%Y %H:%M') }}', '{{ evento.observacoes|replace("'", "\\'") }}', '{{ evento.ensaios_extras }}')">
                                 <i class="fas fa-eye"></i> Ver
                             </button>
                             <button class="btn btn-sm btn-danger" onclick="excluirEvento({{ evento.id }}, '{{ evento.cliente }}')">
@@ -67,33 +67,6 @@
                             </button>
                         </td>
                     </tr>
-
-                    <!-- Modal de Detalhes -->
-                    <div class="modal fade" id="detalhesModal{{ evento.id }}" tabindex="-1">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Detalhes do Evento</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <p><strong>Cliente:</strong> {{ evento.cliente }}</p>
-                                    <p><strong>Tipo de Serviço:</strong> {{ evento.tipo_servico }}</p>
-                                    <p><strong>Data do Evento:</strong> {{ evento.data_evento.strftime('%d/%m/%Y') }}</p>
-                                    <p><strong>Valor Negociado:</strong> R$ {{ "%.2f"|format(evento.valor_negociado) }}</p>
-                                    <p><strong>Valor Pago:</strong> R$ {{ "%.2f"|format(evento.valor_pago) }}</p>
-                                    <p><strong>Status:</strong> {{ evento.status }}</p>
-                                    <p><strong>Data de Cadastro:</strong> {{ evento.data_cadastro.strftime('%d/%m/%Y %H:%M') }}</p>
-                                    {% if evento.observacoes %}
-                                    <p><strong>Observações:</strong> {{ evento.observacoes }}</p>
-                                    {% endif %}
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                     {% endfor %}
                 </tbody>
                 <tfoot class="table-light">
@@ -219,6 +192,32 @@
     </div>
 </div>
 
+<!-- Modal de Detalhes (Único e Reutilizável) -->
+<div class="modal fade" id="detalhesModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalhes do Evento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Cliente:</strong> <span id="detalheCliente"></span></p>
+                <p><strong>Tipo de Serviço:</strong> <span id="detalheTipoServico"></span></p>
+                <p><strong>Data do Evento:</strong> <span id="detalheDataEvento"></span></p>
+                <p><strong>Ensaios Extras:</strong> <span id="detalheEnsaiosExtras"></span></p>
+                <p><strong>Valor Negociado:</strong> <span id="detalheValorNegociado"></span></p>
+                <p><strong>Valor Pago:</strong> <span id="detalheValorPago"></span></p>
+                <p><strong>Status:</strong> <span id="detalheStatus"></span></p>
+                <p><strong>Data de Cadastro:</strong> <span id="detalheDataCadastro"></span></p>
+                <p id="detalheObservacoesContainer" style="display: none;"><strong>Observações:</strong> <span id="detalheObservacoes"></span></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal para Confirmação de Exclusão -->
 <div class="modal fade" id="confirmarExclusaoModal" tabindex="-1">
     <div class="modal-dialog">
@@ -272,6 +271,31 @@
 
 {% block scripts %}
 <script>
+// Função para ver detalhes do evento
+function verDetalhes(cliente, tipoServico, dataEvento, valorNegociado, valorPago, status, dataCadastro, observacoes, ensaiosExtras) {
+    document.getElementById('detalheCliente').textContent = cliente || 'Cliente não informado';
+    document.getElementById('detalheTipoServico').textContent = tipoServico;
+    document.getElementById('detalheDataEvento').textContent = dataEvento;
+    document.getElementById('detalheEnsaiosExtras').textContent = ensaiosExtras || 'Nenhum';
+    document.getElementById('detalheValorNegociado').textContent = 'R$ ' + valorNegociado.toFixed(2).replace('.', ',');
+    document.getElementById('detalheValorPago').textContent = 'R$ ' + valorPago.toFixed(2).replace('.', ',');
+    document.getElementById('detalheStatus').textContent = status;
+    document.getElementById('detalheDataCadastro').textContent = dataCadastro;
+    
+    const obsContainer = document.getElementById('detalheObservacoesContainer');
+    const obsTexto = document.getElementById('detalheObservacoes');
+    
+    if (observacoes && observacoes.trim() !== '' && observacoes !== 'None') {
+        obsTexto.textContent = observacoes;
+        obsContainer.style.display = 'block';
+    } else {
+        obsContainer.style.display = 'none';
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('detalhesModal'));
+    modal.show();
+}
+
 // Função para formatação automática de campos monetários
 function formatarCampoMoeda(campo) {
     const valor = parseFloat(campo.value);
