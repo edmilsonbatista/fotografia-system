@@ -80,41 +80,129 @@
     </div>
 </div>
 
+<!-- Previsão de Receita do Mês -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card border-start border-success border-4 shadow-sm">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-success fw-bold mb-1">
+                            <i class="fas fa-money-bill-wave me-1"></i> Recebido (Mês)
+                        </div>
+                        <h4 class="text-success mb-0">{{ receita_mes|moeda }}</h4>
+                    </div>
+                    <div class="text-end">
+                        <i class="fas fa-check-circle fa-2x text-success opacity-25"></i>
+                    </div>
+                </div>
+                <small class="text-muted d-block mt-2">
+                    <i class="fas fa-info-circle"></i> Valores já pagos
+                </small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-start border-warning border-4 shadow-sm">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-warning fw-bold mb-1">
+                            <i class="fas fa-calendar-check me-1"></i> A Receber (Mês)
+                        </div>
+                        <h4 class="text-warning mb-0">{{ previsao_mes|moeda }}</h4>
+                    </div>
+                    <div class="text-end">
+                        <i class="fas fa-clock fa-2x text-warning opacity-25"></i>
+                    </div>
+                </div>
+                <small class="text-muted d-block mt-2">
+                    <i class="fas fa-info-circle"></i> Eventos agendados
+                </small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-start border-primary border-4 shadow-sm">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-primary fw-bold mb-1">
+                            <i class="fas fa-chart-line me-1"></i> Total Projetado
+                        </div>
+                        <h4 class="text-primary mb-0">{{ (receita_mes + previsao_mes)|moeda }}</h4>
+                    </div>
+                    <div class="text-end">
+                        <i class="fas fa-calculator fa-2x text-primary opacity-25"></i>
+                    </div>
+                </div>
+                <small class="text-muted d-block mt-2">
+                    <i class="fas fa-info-circle"></i> Recebido + A receber
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row justify-content-center">
     <div class="col-md-10 col-lg-8">
         <!-- Ações Rápidas -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5><i class="fas fa-bolt text-warning"></i> Ações Rápidas</h5>
+        <div class="card mb-4 border-0 shadow">
+            <div class="card-header bg-white border-0 pt-4">
+                <h5 class="mb-0"><i class="fas fa-bolt text-warning"></i> Ações Rápidas</h5>
             </div>
-            <div class="card-body">
+            <div class="card-body px-4 pb-4">
                 <div class="row g-3">
                     <div class="col-6 col-md-3">
-                        <a href="{{ url_for('novo_evento') }}" class="btn btn-primary btn-lg w-100 shadow-sm quick-action-btn">
-                            <i class="fas fa-calendar-plus fa-2x mb-2"></i>
-                            <div class="fw-bold">Novo Evento</div>
-                            <small class="text-light">Cadastrar cliente</small>
+                        <a href="{{ url_for('novo_evento') }}" class="text-decoration-none d-block h-100">
+                            <div class="card border-0 shadow-sm hover-lift h-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 160px;">
+                                <div class="card-body text-center text-white p-3 d-flex flex-column justify-content-center">
+                                    <div class="mb-2">
+                                        <i class="fas fa-calendar-plus fa-3x opacity-75"></i>
+                                    </div>
+                                    <h6 class="fw-bold mb-1">Novo Evento</h6>
+                                    <small class="opacity-75">Cadastrar cliente</small>
+                                </div>
+                            </div>
                         </a>
                     </div>
                     <div class="col-6 col-md-3">
-                        <button class="btn btn-success btn-lg w-100 shadow-sm quick-action-btn" data-bs-toggle="modal" data-bs-target="#transacaoModal">
-                            <i class="fas fa-cash-register fa-2x mb-2"></i>
-                            <div class="fw-bold">Nova Transação</div>
-                            <small class="text-light">Entrada/Saída</small>
+                        <button class="btn p-0 w-100 border-0 h-100" data-bs-toggle="modal" data-bs-target="#transacaoModal">
+                            <div class="card border-0 shadow-sm hover-lift h-100" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); min-height: 160px;">
+                                <div class="card-body text-center text-white p-3 d-flex flex-column justify-content-center">
+                                    <div class="mb-2">
+                                        <i class="fas fa-cash-register fa-3x opacity-75"></i>
+                                    </div>
+                                    <h6 class="fw-bold mb-1">Nova Transação</h6>
+                                    <small class="opacity-75">Entrada/Saída</small>
+                                </div>
+                            </div>
                         </button>
                     </div>
                     <div class="col-6 col-md-3">
-                        <a href="{{ url_for('listar_eventos') }}" class="btn btn-info btn-lg w-100 shadow-sm quick-action-btn">
-                            <i class="fas fa-list-alt fa-2x mb-2"></i>
-                            <div class="fw-bold">Ver Eventos</div>
-                            <small class="text-light">Gerenciar lista</small>
+                        <a href="{{ url_for('listar_eventos') }}" class="text-decoration-none d-block h-100">
+                            <div class="card border-0 shadow-sm hover-lift h-100" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); min-height: 160px;">
+                                <div class="card-body text-center text-white p-3 d-flex flex-column justify-content-center">
+                                    <div class="mb-2">
+                                        <i class="fas fa-list-alt fa-3x opacity-75"></i>
+                                    </div>
+                                    <h6 class="fw-bold mb-1">Ver Eventos</h6>
+                                    <small class="opacity-75">Gerenciar lista</small>
+                                </div>
+                            </div>
                         </a>
                     </div>
                     <div class="col-6 col-md-3">
-                        <a href="{{ url_for('importar') }}" class="btn btn-warning btn-lg w-100 shadow-sm quick-action-btn">
-                            <i class="fas fa-file-import fa-2x mb-2"></i>
-                            <div class="fw-bold">Importar Dados</div>
-                            <small class="text-dark">Excel/CSV</small>
+                        <a href="{{ url_for('importar') }}" class="text-decoration-none d-block h-100">
+                            <div class="card border-0 shadow-sm hover-lift h-100" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); min-height: 160px;">
+                                <div class="card-body text-center text-white p-3 d-flex flex-column justify-content-center">
+                                    <div class="mb-2">
+                                        <i class="fas fa-file-import fa-3x opacity-75"></i>
+                                    </div>
+                                    <h6 class="fw-bold mb-1">Importar Dados</h6>
+                                    <small class="opacity-75">Excel/CSV</small>
+                                </div>
+                            </div>
                         </a>
                     </div>
                 </div>
@@ -125,19 +213,37 @@
         <div class="row mb-4">
             <div class="col-12">
                 <div class="card mb-4">
-                    <div class="card-header">
-                        <h5>Receita por Mês</h5>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Receita por Mês</h5>
+                        <div class="btn-group btn-group-sm" id="btnGrupoVisao">
+                            <button class="btn btn-primary active" onclick="trocarVisaoReceita('todos')" id="btnTodos">Todos</button>
+                            <button class="btn btn-outline-primary" onclick="trocarVisaoReceita('planejado')" id="btnPlanejado">Planejado</button>
+                            <button class="btn btn-outline-primary" onclick="trocarVisaoReceita('real')" id="btnReal">Real</button>
+                            <button class="btn btn-outline-primary" onclick="trocarVisaoReceita('recebido')" id="btnRecebido">Recebido</button>
+                        </div>
                     </div>
                     <div class="card-body">
-                        <canvas id="receitaChart" height="200"></canvas>
+                        <canvas id="receitaChart" height="250"></canvas>
                     </div>
                 </div>
                 <div class="card">
-                    <div class="card-header">
-                        <h5>Serviços por Tipo</h5>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Serviços por Tipo</h5>
+                        <button id="btnVoltarGrafico" class="btn btn-sm btn-outline-secondary" style="display:none;" onclick="fecharListaEventos()">
+                            <i class="fas fa-arrow-left"></i> Voltar
+                        </button>
                     </div>
                     <div class="card-body">
-                        <canvas id="servicosChart"></canvas>
+                        <div class="row">
+                            <div id="graficoCol" class="col-12" style="transition: all 0.4s ease;">
+                                <canvas id="servicosChart"></canvas>
+                                <p class="text-center text-muted small mt-2"><i class="fas fa-hand-pointer"></i> Clique em uma fatia para ver os eventos</p>
+                            </div>
+                            <div id="listaEventosCol" class="col-md-6" style="display:none; opacity:0; transition: all 0.4s ease;">
+                                <h6 id="listaEventosTitulo" class="mb-3"></h6>
+                                <div id="listaEventosConteudo" style="max-height: 350px; overflow-y: auto;"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -179,27 +285,29 @@
             </div>
         </div>
         
-        <!-- Próximos Eventos -->
+        <!-- Eventos do Mês -->
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5><i class="fas fa-clock"></i> Próximos Eventos</h5>
+                <h5><i class="fas fa-calendar-alt"></i> Eventos do Mês</h5>
                 <span class="badge bg-primary">{{ proximos_eventos|length }} eventos</span>
             </div>
             <div class="card-body">
                 {% if proximos_eventos %}
                     <div class="row">
                         {% for evento in proximos_eventos %}
-                        <div class="col-md-4 col-lg-3 mb-3">
-                            <div class="card border-left-primary h-100 evento-card" style="cursor: pointer;" onclick="abrirDetalhesEvento({{ evento.id }}, '{{ evento.cliente }}', '{{ evento.tipo_servico }}', '{{ evento.data_evento.strftime('%d/%m/%Y') }}', {{ evento.valor_negociado }}, {{ evento.valor_pago }}, '{{ evento.status }}', '{{ evento.data_cadastro.strftime('%d/%m/%Y %H:%M') }}', '{{ evento.observacoes|replace("'", "\\'") }}')">
+                        <div class="col-6 col-md-3 mb-3">
+                            <div class="card border-left-primary h-100 evento-card" style="cursor: pointer;" onclick="abrirDetalhesEvento({{ evento.id }}, '{{ evento.cliente }}', '{{ evento.tipo_servico }}', '{{ evento.data_evento|data }}', {{ evento.valor_negociado }}, {{ evento.valor_pago }}, '{{ evento.status }}', '{{ evento.data_cadastro|datahora }}', '{{ evento.observacoes|replace("'", "\\'") }}')">
                                 <div class="card-body p-3">
                                     <div class="text-center">
-                                        <h6 class="mb-1 text-primary">{{ evento.cliente }}</h6>
+                                        <h6 class="mb-1 text-primary text-truncate">{{ evento.cliente }}</h6>
                                         <p class="mb-1 small text-muted">{{ evento.tipo_servico }}</p>
-                                        <p class="mb-2 small"><i class="fas fa-calendar"></i> {{ evento.data_evento.strftime('%d/%m/%Y') }}</p>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <span class="badge bg-success">{{ evento.valor_negociado|moeda }}</span>
+                                        <p class="mb-2 small"><i class="fas fa-calendar"></i> {{ evento.data_evento|data }}</p>
+                                        <span class="badge bg-success">{{ evento.valor_negociado|moeda }}</span>
+                                        <div class="mt-1">
                                             {% if evento.status == 'Realizado' %}
                                                 <small class="text-success"><i class="fas fa-check-circle"></i> Realizado</small>
+                                            {% elif evento.status == 'Cancelado' %}
+                                                <small class="text-danger"><i class="fas fa-times-circle"></i> Cancelado</small>
                                             {% elif evento.valor_pago > 0 %}
                                                 <small class="text-info"><i class="fas fa-coins"></i> Sinal pago</small>
                                             {% else %}
@@ -212,7 +320,6 @@
                         </div>
                         {% endfor %}
                     </div>
-                    
                     {% if proximos_eventos|length >= 5 %}
                     <div class="text-center mt-3">
                         <a href="{{ url_for('listar_eventos') }}" class="btn btn-outline-primary">
@@ -583,87 +690,87 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             console.log('Dados recebidos:', data);
             
-            // Gráfico de Receita
-            const receitaCtx = document.getElementById('receitaChart').getContext('2d');
+            // Guardar dados globalmente para trocar visão
+            window.dadosReceita = data.receita_por_mes || [];
+            window.receitaChart = null;
             
-            // Verificar se há dados de receita
-            if (data.receita_por_mes && data.receita_por_mes.length > 0) {
-                new Chart(receitaCtx, {
-                    type: 'line',
-                    data: {
-                        labels: data.receita_por_mes.map(item => {
-                            const [ano, mes] = item.mes.split('-');
-                            return `${mes}/${ano}`;
-                        }),
-                        datasets: [{
-                            label: 'Receita (R$)',
-                            data: data.receita_por_mes.map(item => item.receita),
-                            borderColor: 'rgb(75, 192, 192)',
-                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                            tension: 0.1,
-                            fill: true
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top'
-                            },
-                            title: {
-                                display: true,
-                                text: 'Receita Negociada por Mês (R$)'
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    callback: function(value) {
-                                        return new Intl.NumberFormat('pt-BR', {
-                                            style: 'currency',
-                                            currency: 'BRL'
-                                        }).format(value);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
+            var receitaCtx = document.getElementById('receitaChart').getContext('2d');
+            
+            if (window.dadosReceita.length > 0) {
+                criarGraficoReceita('todos');
             }
 
-            // Gráfico de Serviços
+            // Gráfico de Serviços - Animado
             const servicosCtx = document.getElementById('servicosChart').getContext('2d');
             
             if (data.servicos_por_tipo && data.servicos_por_tipo.length > 0) {
-                new Chart(servicosCtx, {
+                var coresPizza = [
+                    { bg: 'rgba(102, 126, 234, 0.85)', hover: 'rgba(102, 126, 234, 1)' },
+                    { bg: 'rgba(240, 147, 251, 0.85)', hover: 'rgba(240, 147, 251, 1)' },
+                    { bg: 'rgba(67, 233, 123, 0.85)', hover: 'rgba(67, 233, 123, 1)' },
+                    { bg: 'rgba(250, 112, 154, 0.85)', hover: 'rgba(250, 112, 154, 1)' }
+                ];
+                
+                var servicosChart = new Chart(servicosCtx, {
                     type: 'doughnut',
                     data: {
-                        labels: data.servicos_por_tipo.map(item => item.tipo),
+                        labels: data.servicos_por_tipo.map(function(item) { return item.tipo; }),
                         datasets: [{
-                            data: data.servicos_por_tipo.map(item => item.total),
-                            backgroundColor: [
-                                'rgba(255, 99, 132, 0.8)',
-                                'rgba(54, 162, 235, 0.8)',
-                                'rgba(255, 205, 86, 0.8)',
-                                'rgba(75, 192, 192, 0.8)'
-                            ],
-                            borderWidth: 2,
-                            borderColor: '#fff'
+                            data: data.servicos_por_tipo.map(function(item) { return item.total; }),
+                            backgroundColor: data.servicos_por_tipo.map(function(_, i) { return coresPizza[i % coresPizza.length].bg; }),
+                            hoverBackgroundColor: data.servicos_por_tipo.map(function(_, i) { return coresPizza[i % coresPizza.length].hover; }),
+                            borderWidth: 3,
+                            borderColor: '#fff',
+                            hoverBorderWidth: 0,
+                            hoverOffset: 15
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: true,
+                        cutout: '55%',
+                        animation: {
+                            animateRotate: true,
+                            animateScale: true,
+                            duration: 1200,
+                            easing: 'easeOutBack'
+                        },
+                        onClick: function(evt, elements) {
+                            if (elements.length > 0) {
+                                var idx = elements[0].index;
+                                var tipo = data.servicos_por_tipo[idx].tipo;
+                                abrirListaEventos(tipo);
+                            }
+                        },
                         plugins: {
                             legend: {
-                                position: 'bottom'
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true,
+                                    pointStyle: 'circle',
+                                    font: { size: 13 }
+                                }
                             },
                             title: {
                                 display: true,
-                                text: 'Distribuição de Eventos por Tipo de Serviço'
+                                text: 'Distribuição de Eventos por Tipo',
+                                font: { size: 14, weight: 'bold' },
+                                padding: { bottom: 15 }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0,0,0,0.8)',
+                                titleFont: { size: 14 },
+                                bodyFont: { size: 13 },
+                                padding: 12,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: function(ctx) {
+                                        var total = ctx.dataset.data.reduce(function(a,b) { return a+b; }, 0);
+                                        var pct = ((ctx.parsed / total) * 100).toFixed(1);
+                                        return ctx.label + ': ' + ctx.parsed + ' eventos (' + pct + '%)';
+                                    }
+                                }
                             }
                         }
                     }
@@ -716,6 +823,190 @@ function mostrarAlertas(alertas) {
     });
     
     container.style.display = 'block';
+}
+
+// ===== LISTA DE EVENTOS POR TIPO =====
+function abrirListaEventos(tipo) {
+    var graficoCol = document.getElementById('graficoCol');
+    var listaCol = document.getElementById('listaEventosCol');
+    var titulo = document.getElementById('listaEventosTitulo');
+    var conteudo = document.getElementById('listaEventosConteudo');
+    var btnVoltar = document.getElementById('btnVoltarGrafico');
+
+    titulo.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando...';
+    conteudo.innerHTML = '';
+
+    // Animar: gráfico encolhe, lista aparece
+    graficoCol.className = 'col-md-6';
+    listaCol.style.display = 'block';
+    setTimeout(function() { listaCol.style.opacity = '1'; }, 50);
+    btnVoltar.style.display = 'inline-block';
+
+    fetch('/api/eventos-por-tipo?tipo=' + encodeURIComponent(tipo))
+        .then(function(r) { return r.json(); })
+        .then(function(eventos) {
+            var icone = tipo === 'Fotografia' ? 'fa-camera' : tipo === 'Storymaker' ? 'fa-video' : 'fa-camera';
+            titulo.innerHTML = '<i class="fas ' + icone + ' me-1"></i> ' + tipo + ' <span class="badge bg-primary">' + eventos.length + '</span>';
+
+            if (eventos.length === 0) {
+                conteudo.innerHTML = '<p class="text-muted text-center">Nenhum evento encontrado</p>';
+                return;
+            }
+
+            var html = '';
+            eventos.forEach(function(ev, i) {
+                var statusClass = ev.status === 'Realizado' ? 'success' : ev.status === 'Cancelado' ? 'danger' : 'warning';
+                var statusIcon = ev.status === 'Realizado' ? 'fa-check-circle' : ev.status === 'Cancelado' ? 'fa-times-circle' : 'fa-clock';
+                var valor = 'R$ ' + ev.valor_negociado.toFixed(2).replace('.', ',');
+
+                html += '<div class="d-flex justify-content-between align-items-center p-2 mb-1 rounded" style="background:#f8f9fa; animation: slideIn 0.3s ease ' + (i * 0.05) + 's both;">';
+                html += '  <div>';
+                html += '    <small class="fw-bold d-block">' + ev.cliente + '</small>';
+                html += '    <small class="text-muted"><i class="fas fa-calendar me-1"></i>' + ev.data_evento + '</small>';
+                html += '  </div>';
+                html += '  <div class="text-end">';
+                html += '    <small class="fw-bold d-block">' + valor + '</small>';
+                html += '    <span class="badge bg-' + statusClass + '" style="font-size:0.65rem;"><i class="fas ' + statusIcon + '"></i> ' + ev.status + '</span>';
+                html += '  </div>';
+                html += '</div>';
+            });
+            conteudo.innerHTML = html;
+        })
+        .catch(function() {
+            conteudo.innerHTML = '<p class="text-danger text-center">Erro ao carregar</p>';
+        });
+}
+
+function fecharListaEventos() {
+    var graficoCol = document.getElementById('graficoCol');
+    var listaCol = document.getElementById('listaEventosCol');
+    var btnVoltar = document.getElementById('btnVoltarGrafico');
+
+    listaCol.style.opacity = '0';
+    setTimeout(function() {
+        listaCol.style.display = 'none';
+        graficoCol.className = 'col-12';
+        btnVoltar.style.display = 'none';
+    }, 400);
+}
+
+// ===== GRÁFICO DE RECEITA COM VISÕES =====
+function criarGraficoReceita(visao) {
+    if (window.receitaChart) window.receitaChart.destroy();
+    
+    var ctx = document.getElementById('receitaChart').getContext('2d');
+    var dados = window.dadosReceita;
+    
+    var labels = dados.map(function(item) {
+        var parts = item.mes.split('-');
+        var meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+        return meses[parseInt(parts[1])-1] + '/' + parts[0].slice(2);
+    });
+    
+    var datasets = [];
+    
+    if (visao === 'todos' || visao === 'planejado') {
+        datasets.push({
+            label: 'Planejado',
+            data: dados.map(function(d) { return d.planejado; }),
+            backgroundColor: 'rgba(102, 126, 234, 0.25)',
+            borderColor: 'rgba(102, 126, 234, 0.7)',
+            borderWidth: 2,
+            borderRadius: 6,
+            borderSkipped: false,
+            type: 'bar',
+            order: 3
+        });
+    }
+    
+    if (visao === 'todos' || visao === 'real') {
+        datasets.push({
+            label: 'Real (excl. cancelados)',
+            data: dados.map(function(d) { return d.real; }),
+            backgroundColor: 'rgba(67, 233, 123, 0.7)',
+            borderColor: 'rgba(67, 233, 123, 1)',
+            borderWidth: 2,
+            borderRadius: 6,
+            borderSkipped: false,
+            type: 'bar',
+            order: 2
+        });
+    }
+    
+    if (visao === 'todos' || visao === 'recebido') {
+        var grad = ctx.createLinearGradient(0, 0, 0, 400);
+        grad.addColorStop(0, 'rgba(79, 172, 254, 0.3)');
+        grad.addColorStop(1, 'rgba(79, 172, 254, 0)');
+        
+        datasets.push({
+            label: 'Recebido',
+            data: dados.map(function(d) { return d.recebido; }),
+            type: 'line',
+            borderColor: 'rgba(79, 172, 254, 1)',
+            backgroundColor: grad,
+            tension: 0.4,
+            fill: true,
+            pointBackgroundColor: '#fff',
+            pointBorderColor: 'rgba(79, 172, 254, 1)',
+            pointBorderWidth: 3,
+            pointRadius: 5,
+            pointHoverRadius: 8,
+            borderWidth: 3,
+            order: 1
+        });
+    }
+    
+    window.receitaChart = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: labels, datasets: datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 800, easing: 'easeOutQuart' },
+            interaction: { intersect: false, mode: 'index' },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { usePointStyle: true, pointStyle: 'circle', padding: 15, font: { size: 12 } }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.85)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(ctx) {
+                            var v = ctx.parsed.y || 0;
+                            return ctx.dataset.label + ': R$ ' + v.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(0,0,0,0.05)' },
+                    ticks: {
+                        callback: function(v) {
+                            if (v >= 1000) return 'R$ ' + (v/1000).toFixed(1) + 'k';
+                            return 'R$ ' + v;
+                        }
+                    }
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+}
+
+function trocarVisaoReceita(visao) {
+    // Atualizar botões
+    var btns = document.querySelectorAll('#btnGrupoVisao button');
+    for (var i = 0; i < btns.length; i++) {
+        btns[i].className = 'btn btn-outline-primary';
+    }
+    document.getElementById('btn' + visao.charAt(0).toUpperCase() + visao.slice(1)).className = 'btn btn-primary active';
+    
+    criarGraficoReceita(visao);
 }
 </script>
 {% endblock %}

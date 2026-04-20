@@ -16,16 +16,40 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
 @app.template_filter('moeda')
 def moeda_filter(valor):
     """Formata valor como moeda brasileira"""
-    if valor is None:
+    try:
+        valor = float(valor) if valor else 0
+    except (ValueError, TypeError):
         valor = 0
     return f"R$ {valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
 
 @app.template_filter('numero')
 def numero_filter(valor):
     """Formata número com separador de milhares brasileiro"""
-    if valor is None:
+    try:
+        valor = float(valor) if valor else 0
+    except (ValueError, TypeError):
         valor = 0
     return f"{valor:,.0f}".replace(',', '.')
+
+@app.template_filter('data')
+def data_filter(valor, formato='%d/%m/%Y'):
+    """Formata data de forma segura"""
+    if valor is None:
+        return '-'
+    try:
+        return valor.strftime(formato)
+    except (AttributeError, ValueError):
+        return str(valor)
+
+@app.template_filter('datahora')
+def datahora_filter(valor, formato='%d/%m/%Y %H:%M'):
+    """Formata datetime de forma segura"""
+    if valor is None:
+        return '-'
+    try:
+        return valor.strftime(formato)
+    except (AttributeError, ValueError):
+        return str(valor)
 
 # Criar pasta de uploads se não existir
 if not os.path.exists('uploads'):
@@ -45,11 +69,14 @@ class Evento(db.Model):
     observacoes = db.Column(db.Text)
     ensaios_extras = db.Column(db.String(100), nullable=False, default='Nenhum')
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relacionamento com transações (CASCADE delete)
+    transacoes = db.relationship('Transacao', backref='evento', lazy=True, cascade='all, delete-orphan')
 
 class Transacao(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    evento_id = db.Column(db.Integer, db.ForeignKey('evento.id'))
-    tipo = db.Column(db.String(20), nullable=False)  # Entrada, Saída
+    evento_id = db.Column(db.Integer, db.ForeignKey('evento.id', ondelete='CASCADE'))
+    tipo = db.Column(db.String(20), nullable=False)  # Entrada, Saída, Entrada Pendente
     valor = db.Column(db.Float, nullable=False)
     descricao = db.Column(db.String(200), nullable=False)
     data_transacao = db.Column(db.Date, nullable=False)
@@ -78,6 +105,12 @@ def dashboard():
         Evento.valor_pago > 0
     ).scalar() or 0
     
+    # Previsão de receita do mês (valor negociado de eventos agendados e pendentes)
+    previsao_mes = db.session.query(db.func.sum(Evento.valor_negociado)).filter(
+        db.func.strftime('%Y-%m', Evento.data_evento) == hoje.strftime('%Y-%m'),
+        Evento.status.in_(['Agendado', 'Pendente'])
+    ).scalar() or 0
+    
     # Status dos eventos (todos os eventos, independente da data)
     eventos_agendados = Evento.query.filter_by(status='Agendado').count()
     eventos_realizados = Evento.query.filter_by(status='Realizado').count()
@@ -90,11 +123,10 @@ def dashboard():
     total_recebido = sum(e.valor_pago for e in todos_eventos)
     total_pendente = total_negociado - total_recebido
     
-    # Próximos eventos (apenas agendados e pendentes, futuros ou de hoje)
+    # Eventos do mês vigente (todos os status)
     proximos_eventos = Evento.query.filter(
-        Evento.data_evento >= hoje,
-        Evento.status.in_(['Agendado', 'Pendente'])
-    ).order_by(Evento.data_evento.asc()).limit(5).all()
+        db.func.strftime('%Y-%m', Evento.data_evento) == hoje.strftime('%Y-%m')
+    ).order_by(Evento.data_evento.asc()).all()
     
     # Todos os eventos para o calendário
     todos_eventos_calendario = Evento.query.all()
@@ -104,6 +136,7 @@ def dashboard():
                          eventos_mes=eventos_mes,
                          receita_total=receita_total,
                          receita_mes=receita_mes,
+                         previsao_mes=previsao_mes,
                          eventos_agendados=eventos_agendados,
                          eventos_realizados=eventos_realizados,
                          eventos_cancelados=eventos_cancelados,
@@ -117,7 +150,20 @@ def dashboard():
 @app.route('/eventos')
 def listar_eventos():
     eventos = Evento.query.order_by(Evento.data_evento.asc()).all()
-    return render_template('eventos.html', eventos=eventos)
+    
+    # Estatísticas para os cards
+    total = len(eventos)
+    agendados = sum(1 for e in eventos if e.status == 'Agendado')
+    realizados = sum(1 for e in eventos if e.status == 'Realizado')
+    cancelados = sum(1 for e in eventos if e.status == 'Cancelado')
+    total_negociado = sum(e.valor_negociado for e in eventos if e.status != 'Cancelado')
+    total_recebido = sum(e.valor_pago for e in eventos if e.status != 'Cancelado')
+    
+    return render_template('eventos.html', eventos=eventos,
+                         total=total, agendados=agendados,
+                         realizados=realizados, cancelados=cancelados,
+                         total_negociado=total_negociado,
+                         total_recebido=total_recebido)
 
 @app.route('/evento/novo', methods=['GET', 'POST'])
 def novo_evento():
@@ -142,10 +188,55 @@ def novo_evento():
             ensaios_extras=ensaios_extras
         )
         db.session.add(evento)
+        db.session.flush()  # Garante que o evento.id seja gerado
+        
+        # Criar transação pendente automaticamente
+        transacao_pendente = Transacao(
+            evento_id=evento.id,
+            tipo='Entrada Pendente',
+            valor=float(request.form['valor_negociado']),
+            descricao=f'Saldo restante - {request.form["cliente"]}',
+            data_transacao=datetime.strptime(request.form['data_evento'], '%Y-%m-%d').date(),
+            categoria='Pagamento de Cliente'
+        )
+        db.session.add(transacao_pendente)
+        
         db.session.commit()
         return redirect(url_for('listar_eventos'))
     
     return render_template('novo_evento.html')
+
+@app.route('/api/verificar-data-evento')
+def verificar_data_evento():
+    """Verifica se já existe evento na data especificada"""
+    data = request.args.get('data')
+    if not data:
+        return jsonify({'existe': False})
+    
+    try:
+        data_evento = datetime.strptime(data, '%Y-%m-%d').date()
+        eventos = Evento.query.filter(
+            Evento.data_evento == data_evento,
+            Evento.status.in_(['Agendado', 'Pendente'])
+        ).all()
+        
+        if eventos:
+            eventos_info = [{
+                'id': e.id,
+                'cliente': e.cliente,
+                'tipo_servico': e.tipo_servico,
+                'valor': float(e.valor_negociado)
+            } for e in eventos]
+            
+            return jsonify({
+                'existe': True,
+                'quantidade': len(eventos),
+                'eventos': eventos_info
+            })
+        
+        return jsonify({'existe': False})
+    except:
+        return jsonify({'existe': False})
 
 @app.route('/evento/<int:id>/pagar', methods=['POST'])
 def registrar_pagamento(id):
@@ -156,7 +247,7 @@ def registrar_pagamento(id):
         evento = Evento.query.get_or_404(id)
         evento.valor_pago += valor
         
-        # Criar transação no caixa
+        # Criar transação de entrada no caixa
         transacao = Transacao(
             evento_id=id,
             tipo='Entrada',
@@ -166,6 +257,22 @@ def registrar_pagamento(id):
             categoria='Pagamento de Cliente'
         )
         db.session.add(transacao)
+        
+        # Atualizar ou remover transação pendente correspondente
+        pendente = Transacao.query.filter_by(
+            evento_id=id,
+            tipo='Entrada Pendente'
+        ).first()
+        
+        if pendente:
+            saldo_restante = evento.valor_negociado - evento.valor_pago
+            if saldo_restante <= 0:
+                # Pago totalmente — remover pendente
+                db.session.delete(pendente)
+            else:
+                # Atualizar valor pendente com o saldo restante
+                pendente.valor = saldo_restante
+                pendente.descricao = f'Saldo restante - {evento.cliente}'
         
         if evento.valor_pago >= evento.valor_negociado:
             evento.status = 'Realizado'
@@ -179,30 +286,36 @@ def registrar_pagamento(id):
 
 @app.route('/caixa')
 def caixa():
-    # Buscar transações realizadas (Entrada e Saída) ordenadas por data crescente
+    # Buscar transações realizadas (Entrada e Saída) ordenadas por data
     transacoes_realizadas = Transacao.query.filter(
         Transacao.tipo.in_(['Entrada', 'Saída'])
-    ).order_by(Transacao.data_transacao.asc()).all()
+    ).order_by(Transacao.data_transacao.desc()).all()
     
-    # Buscar transações pendentes ordenadas por data crescente (mais próximas primeiro)
-    transacoes_pendentes = Transacao.query.filter(
-        Transacao.tipo == 'Entrada Pendente'
+    # Buscar pendentes apenas de eventos NÃO cancelados
+    transacoes_pendentes = db.session.query(Transacao).join(
+        Evento, Transacao.evento_id == Evento.id
+    ).filter(
+        Transacao.tipo == 'Entrada Pendente',
+        Evento.status.notin_(['Cancelado']),
+        Evento.valor_pago < Evento.valor_negociado
     ).order_by(Transacao.data_transacao.asc()).all()
     
     # Calcular saldos
     entradas = db.session.query(db.func.sum(Transacao.valor)).filter(Transacao.tipo == 'Entrada').scalar() or 0
     saidas = db.session.query(db.func.sum(Transacao.valor)).filter(Transacao.tipo == 'Saída').scalar() or 0
-    pendentes = db.session.query(db.func.sum(Transacao.valor)).filter(Transacao.tipo == 'Entrada Pendente').scalar() or 0
+    pendentes_total = sum(t.valor for t in transacoes_pendentes)
     
     saldo_atual = entradas - saidas
-    saldo_projetado = saldo_atual + pendentes
+    saldo_projetado = saldo_atual + pendentes_total
     
     return render_template('caixa.html', 
                          transacoes=transacoes_realizadas,
                          transacoes_pendentes=transacoes_pendentes,
                          saldo=saldo_atual,
+                         entradas=entradas,
+                         saidas=saidas,
                          saldo_projetado=saldo_projetado,
-                         total_pendente=pendentes)
+                         total_pendente=pendentes_total)
 
 @app.route('/transacao/nova', methods=['POST'])
 def nova_transacao():
@@ -219,10 +332,23 @@ def nova_transacao():
 
 @app.route('/evento/<int:id>/excluir', methods=['POST'])
 def excluir_evento(id):
-    evento = Evento.query.get_or_404(id)
-    db.session.delete(evento)
-    db.session.commit()
-    return jsonify({'success': True})
+    try:
+        evento = Evento.query.get_or_404(id)
+        
+        # Excluir todas as transações relacionadas ao evento
+        transacoes_relacionadas = Transacao.query.filter_by(evento_id=id).all()
+        
+        for transacao in transacoes_relacionadas:
+            db.session.delete(transacao)
+        
+        # Excluir o evento
+        db.session.delete(evento)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': f'Evento e {len(transacoes_relacionadas)} transação(ões) excluídos'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/evento/<int:id>/editar', methods=['POST'])
 def editar_evento(id):
@@ -263,8 +389,29 @@ def reverter_pagamento(id):
             # Voltar status para Agendado se estava Realizado
             if evento.status == 'Realizado':
                 evento.status = 'Agendado'
+            
+            # Restaurar/atualizar transação pendente
+            saldo_restante = evento.valor_negociado - evento.valor_pago
+            if saldo_restante > 0:
+                pendente = Transacao.query.filter_by(
+                    evento_id=evento.id,
+                    tipo='Entrada Pendente'
+                ).first()
+                if pendente:
+                    pendente.valor = saldo_restante
+                    pendente.descricao = f'Saldo restante - {evento.cliente}'
+                else:
+                    nova_pendente = Transacao(
+                        evento_id=evento.id,
+                        tipo='Entrada Pendente',
+                        valor=saldo_restante,
+                        descricao=f'Saldo restante - {evento.cliente}',
+                        data_transacao=evento.data_evento,
+                        categoria='Pagamento de Cliente'
+                    )
+                    db.session.add(nova_pendente)
         
-        # Excluir a transação
+        # Excluir a transação de entrada
         db.session.delete(transacao)
         db.session.commit()
         
@@ -276,10 +423,44 @@ def reverter_pagamento(id):
 
 @app.route('/transacao/<int:id>/excluir', methods=['POST'])
 def excluir_transacao(id):
-    transacao = Transacao.query.get_or_404(id)
-    db.session.delete(transacao)
-    db.session.commit()
-    return jsonify({'success': True})
+    try:
+        transacao = Transacao.query.get_or_404(id)
+        
+        # Verificar se a transação está vinculada a um evento
+        if transacao.evento_id:
+            evento = Evento.query.get(transacao.evento_id)
+            if evento:
+                return jsonify({
+                    'success': False, 
+                    'error': f'Esta transação está vinculada ao evento de {evento.cliente}. Exclua o evento para remover todas as transações relacionadas.'
+                }), 400
+        
+        # Se não está vinculada a evento, pode excluir
+        db.session.delete(transacao)
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/transacao/<int:id>/editar', methods=['POST'])
+def editar_transacao(id):
+    try:
+        transacao = Transacao.query.get_or_404(id)
+        data = request.get_json()
+        
+        # Atualizar campos
+        transacao.tipo = data.get('tipo', transacao.tipo)
+        transacao.valor = float(data.get('valor', transacao.valor))
+        transacao.descricao = data.get('descricao', transacao.descricao)
+        transacao.data_transacao = datetime.strptime(data.get('data_transacao'), '%Y-%m-%d').date()
+        transacao.categoria = data.get('categoria', transacao.categoria)
+        
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/importar')
 def importar():
@@ -411,13 +592,43 @@ def importar_transacoes():
 @app.route('/api/dashboard-data')
 def dashboard_data():
     try:
-        # Receita por mês (baseada no valor negociado, excluindo cancelados)
-        receita_por_mes = db.session.query(
+        # Receita PLANEJADA por mês (todos os eventos, incluindo cancelados)
+        planejado_por_mes = db.session.query(
+            db.func.strftime('%Y-%m', Evento.data_evento).label('mes'),
+            db.func.sum(Evento.valor_negociado).label('receita')
+        ).group_by('mes').order_by('mes').all()
+        
+        # Receita REAL por mês (excluindo cancelados)
+        real_por_mes = db.session.query(
             db.func.strftime('%Y-%m', Evento.data_evento).label('mes'),
             db.func.sum(Evento.valor_negociado).label('receita')
         ).filter(
             Evento.status != 'Cancelado'
         ).group_by('mes').order_by('mes').all()
+        
+        # Recebido por mês (valor_pago efetivo)
+        recebido_por_mes = db.session.query(
+            db.func.strftime('%Y-%m', Evento.data_evento).label('mes'),
+            db.func.sum(Evento.valor_pago).label('receita')
+        ).filter(
+            Evento.valor_pago > 0
+        ).group_by('mes').order_by('mes').all()
+        
+        # Montar dicionários para cruzar os meses
+        planejado_dict = {r.mes: float(r.receita or 0) for r in planejado_por_mes}
+        real_dict = {r.mes: float(r.receita or 0) for r in real_por_mes}
+        recebido_dict = {r.mes: float(r.receita or 0) for r in recebido_por_mes}
+        
+        todos_meses = sorted(set(list(planejado_dict.keys()) + list(real_dict.keys()) + list(recebido_dict.keys())))
+        
+        receita_completa = []
+        for mes in todos_meses:
+            receita_completa.append({
+                'mes': mes,
+                'planejado': planejado_dict.get(mes, 0),
+                'real': real_dict.get(mes, 0),
+                'recebido': recebido_dict.get(mes, 0)
+            })
         
         # Serviços por tipo (apenas agendados e realizados)
         servicos_por_tipo = db.session.query(
@@ -428,7 +639,7 @@ def dashboard_data():
         ).group_by(Evento.tipo_servico).all()
         
         return jsonify({
-            'receita_por_mes': [{'mes': r.mes, 'receita': float(r.receita or 0)} for r in receita_por_mes],
+            'receita_por_mes': receita_completa,
             'servicos_por_tipo': [{'tipo': s.tipo_servico, 'total': s.total} for s in servicos_por_tipo]
         })
     except Exception as e:
@@ -438,6 +649,33 @@ def dashboard_data():
             'servicos_por_tipo': []
         })
 
+@app.route('/api/eventos-por-tipo')
+def eventos_por_tipo():
+    tipo = request.args.get('tipo', '')
+    try:
+        query = Evento.query
+        if tipo:
+            query = query.filter(Evento.tipo_servico == tipo)
+        eventos = query.order_by(Evento.data_evento.asc()).all()
+        
+        resultado = []
+        for e in eventos:
+            try:
+                data_str = e.data_evento.strftime('%d/%m/%Y') if e.data_evento else '-'
+            except:
+                data_str = str(e.data_evento or '-')
+            resultado.append({
+                'id': e.id,
+                'cliente': e.cliente or '',
+                'data_evento': data_str,
+                'status': e.status or '',
+                'valor_negociado': float(e.valor_negociado or 0)
+            })
+        return jsonify(resultado)
+    except Exception as ex:
+        print(f"Erro em eventos-por-tipo: {ex}")
+        return jsonify([])
+
 @app.route('/api/eventos-calendario')
 def eventos_calendario():
     try:
@@ -445,16 +683,23 @@ def eventos_calendario():
         eventos_json = []
         
         for evento in eventos:
+            try:
+                data_evento = evento.data_evento.strftime('%Y-%m-%d') if evento.data_evento else ''
+                data_cadastro = evento.data_cadastro.isoformat() if evento.data_cadastro else ''
+            except (AttributeError, ValueError):
+                data_evento = str(evento.data_evento or '')
+                data_cadastro = str(evento.data_cadastro or '')
+            
             eventos_json.append({
                 'id': evento.id,
-                'cliente': evento.cliente,
-                'tipo_servico': evento.tipo_servico,
-                'data_evento': evento.data_evento.strftime('%Y-%m-%d'),
-                'valor_negociado': float(evento.valor_negociado),
-                'valor_pago': float(evento.valor_pago),
-                'status': evento.status,
+                'cliente': evento.cliente or '',
+                'tipo_servico': evento.tipo_servico or '',
+                'data_evento': data_evento,
+                'valor_negociado': float(evento.valor_negociado or 0),
+                'valor_pago': float(evento.valor_pago or 0),
+                'status': evento.status or '',
                 'observacoes': evento.observacoes or '',
-                'data_cadastro': evento.data_cadastro.isoformat()
+                'data_cadastro': data_cadastro
             })
         
         return jsonify(eventos_json)

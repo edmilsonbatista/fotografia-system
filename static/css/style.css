@@ -1,3 +1,18 @@
+/* Efeito hover para cards de ação */
+.hover-lift {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.hover-lift:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+.hover-lift:active {
+  transform: translateY(-2px);
+}
+
 /* Estilos personalizados para o Sistema de Fotografia */
 
 body {
@@ -456,5 +471,17 @@ canvas {
   .dia-semana {
     padding: 8px 3px;
     font-size: 0.8rem;
+  }
+}
+
+/* Animação slide-in para lista de eventos por tipo */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }

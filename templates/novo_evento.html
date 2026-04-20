@@ -307,10 +307,35 @@ endblock %} {% block content %}
     });
   });
 
-  // Definir data mínima como hoje
-  document.getElementById("data_evento").min = new Date()
-    .toISOString()
-    .split("T")[0];
+  // Validação de data duplicada
+  document
+    .getElementById("data_evento")
+    .addEventListener("change", function () {
+      const data = this.value;
+      if (!data) return;
+
+      fetch(`/api/verificar-data-evento?data=${data}`)
+        .then((response) => response.json())
+        .then((result) => {
+          if (result.existe) {
+            let mensagem = `⚠️ ATENÇÃO: Já existe ${result.quantidade} evento(s) agendado(s) para esta data:\n\n`;
+
+            result.eventos.forEach((evento, index) => {
+              mensagem += `${index + 1}. ${evento.cliente} - ${evento.tipo_servico} (R$ ${evento.valor.toFixed(2)})\n`;
+            });
+
+            mensagem += `\nTem certeza que deseja cadastrar um novo evento nesta data?`;
+
+            if (!confirm(mensagem)) {
+              document.getElementById("data_evento").value = "";
+              document.getElementById("data_evento").focus();
+            }
+          }
+        })
+        .catch((error) => {
+          console.error("Erro ao verificar data:", error);
+        });
+    });
 
   // Sugestões de preço baseadas no tipo de serviço
   document

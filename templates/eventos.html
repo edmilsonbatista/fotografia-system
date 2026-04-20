@@ -1,204 +1,254 @@
-{% extends "base.html" %}
-
-{% block title %}Eventos - Sistema de Fotografia{% endblock %}
-
-{% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Eventos</h2>
-    <a href="{{ url_for('novo_evento') }}" class="btn btn-primary">
+{% extends "base.html" %} {% block title %}Eventos - Sistema de Fotografia{%
+endblock %} {% block content %}
+<!-- Conteúdo centralizado -->
+<div class="row justify-content-center">
+  <div class="col-md-10 col-lg-8">
+    <!-- Header com botão -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2><i class="fas fa-calendar"></i> Eventos</h2>
+      <a href="{{ url_for('novo_evento') }}" class="btn btn-primary">
         <i class="fas fa-plus"></i> Novo Evento
-    </a>
+      </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+      <div
+        class="card-header d-flex justify-content-between align-items-center"
+      >
+        <h5 class="mb-0"><i class="fas fa-filter"></i> Filtros</h5>
+        <button
+          class="btn btn-sm btn-outline-secondary"
+          onclick="limparFiltros()"
+        >
+          <i class="fas fa-times"></i> Limpar
+        </button>
+      </div>
+      <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label small mb-1"
+              ><i class="fas fa-search"></i> Cliente</label
+            >
+            <input
+              type="text"
+              id="filtroCliente"
+              class="form-control form-control-sm"
+              placeholder="Buscar cliente..."
+              oninput="aplicarFiltros()"
+            />
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small mb-1"
+              ><i class="fas fa-briefcase"></i> Serviço</label
+            >
+            <select
+              id="filtroServico"
+              class="form-select form-select-sm"
+              onchange="aplicarFiltros()"
+            >
+              <option value="">Todos</option>
+              <option value="Fotografia">Fotografia</option>
+              <option value="Storymaker">Storymaker</option>
+              <option value="Fotografia + Storymaker">Completo</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small mb-1"
+              ><i class="fas fa-calendar"></i> Data de</label
+            >
+            <input
+              type="date"
+              id="filtroDataDe"
+              class="form-control form-control-sm"
+              onchange="aplicarFiltros()"
+            />
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small mb-1"
+              ><i class="fas fa-calendar"></i> Data até</label
+            >
+            <input
+              type="date"
+              id="filtroDataAte"
+              class="form-control form-control-sm"
+              onchange="aplicarFiltros()"
+            />
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small mb-1"
+              ><i class="fas fa-flag"></i> Status</label
+            >
+            <select
+              id="filtroStatus"
+              class="form-select form-select-sm"
+              onchange="aplicarFiltros()"
+            >
+              <option value="">Todos</option>
+              <option value="Agendado">Agendado</option>
+              <option value="Realizado">Realizado</option>
+              <option value="Cancelado">Cancelado</option>
+              <option value="Pendente">Pendente</option>
+            </select>
+          </div>
+        </div>
+        <div class="mt-2">
+          <small class="text-muted"
+            ><span id="contadorFiltro">{{ eventos|length }}</span> de {{
+            eventos|length }} eventos</small
+          >
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<div class="card">
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Cliente</th>
-                        <th>Tipo de Serviço</th>
-                        <th>Data do Evento</th>
-                        <th>Ensaios Extras</th>
-                        <th>Valor Negociado</th>
-                        <th>Valor Pago</th>
-                        <th>Status</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for evento in eventos %}
-                    <tr>
-                        <td>{{ evento.cliente }}</td>
-                        <td>{{ evento.tipo_servico }}</td>
-                        <td>{{ evento.data_evento.strftime('%d/%m/%Y') }}</td>
-                        <td>
-                            {% if evento.ensaios_extras == 'Nenhum' %}
-                                <span class="badge bg-secondary">{{ evento.ensaios_extras }}</span>
-                            {% else %}
-                                <span class="badge bg-info">{{ evento.ensaios_extras }}</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ evento.valor_negociado|moeda }}</td>
-                        <td>{{ evento.valor_pago|moeda }}</td>
-                        <td>
-                            {% if evento.status == 'Agendado' %}
-                                <span class="badge bg-warning">{{ evento.status }}</span>
-                            {% elif evento.status == 'Realizado' %}
-                                <span class="badge bg-success">{{ evento.status }}</span>
-                            {% else %}
-                                <span class="badge bg-danger">{{ evento.status }}</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if evento.valor_pago < evento.valor_negociado %}
-                            <button class="btn btn-sm btn-success" onclick="registrarPagamento({{ evento.id }}, {{ evento.valor_negociado - evento.valor_pago }})">
-                                <i class="fas fa-dollar-sign"></i> Pagar
-                            </button>
-                            {% endif %}
-                            <button class="btn btn-sm btn-warning" onclick="editarEvento({{ evento.id }}, '{{ evento.cliente }}', '{{ evento.tipo_servico }}', '{{ evento.data_evento.strftime('%Y-%m-%d') }}', {{ evento.valor_negociado }}, {{ evento.valor_pago }}, '{{ evento.status }}', '{{ evento.observacoes|replace("'", "\\'") }}', '{{ evento.ensaios_extras }}')">
-                                <i class="fas fa-edit"></i> Editar
-                            </button>
-                            <button class="btn btn-sm btn-info" onclick="verDetalhes('{{ evento.cliente }}', '{{ evento.tipo_servico }}', '{{ evento.data_evento.strftime('%d/%m/%Y') }}', {{ evento.valor_negociado }}, {{ evento.valor_pago }}, '{{ evento.status }}', '{{ evento.data_cadastro.strftime('%d/%m/%Y %H:%M') }}', '{{ evento.observacoes|replace("'", "\\'") }}', '{{ evento.ensaios_extras }}')">
-                                <i class="fas fa-eye"></i> Ver
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="excluirEvento({{ evento.id }}, '{{ evento.cliente }}')">
-                                <i class="fas fa-trash"></i> Excluir
-                            </button>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-                <tfoot class="table-light">
-                    <tr>
-                        <th colspan="4" class="text-end">TOTAIS:</th>
-                        <th class="text-success fw-bold">{{ eventos|sum(attribute='valor_negociado')|moeda }}</th>
-                        <th class="text-info fw-bold">{{ eventos|sum(attribute='valor_pago')|moeda }}</th>
-                        <th></th>
-                        <th></th>
-                    </tr>
-                </tfoot>
-            </table>
+        <!-- Tabela de Eventos -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-list"></i> Lista de Eventos</h5>
+                <span class="badge bg-primary"><span id="totalEventos">{{ eventos|length }}</span> eventos</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="tabelaEventos">
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Serviço</th>
+                                <th style="cursor:pointer;" onclick="ordenarPorData()">Data <i id="iconOrdemData" class="fas fa-sort"></i></th>
+                                <th>Ensaios</th>
+                                <th>Negociado</th>
+                                <th>Pago</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for evento in eventos %}
+                            <tr data-cliente="{{ evento.cliente|lower }}" data-servico="{{ evento.tipo_servico }}" data-date="{{ evento.data_evento|data('%Y-%m-%d') }}" data-status="{{ evento.status }}">
+                                <td class="align-middle">{{ evento.cliente }}</td>
+                                <td class="align-middle">
+                                    {% if evento.tipo_servico == 'Fotografia' %}
+                                        <span class="badge rounded-pill" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 6px 12px;">
+                                            <i class="fas fa-camera me-1"></i> Foto
+                                        </span>
+                                    {% elif evento.tipo_servico == 'Storymaker' %}
+                                        <span class="badge rounded-pill" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 6px 12px;">
+                                            <i class="fas fa-video me-1"></i> Story
+                                        </span>
+                                    {% else %}
+                                        <span class="badge rounded-pill" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 6px 12px;">
+                                            <i class="fas fa-camera me-1"></i><i class="fas fa-video"></i>
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="align-middle">{{ evento.data_evento|data }}</td>
+                                <td class="align-middle">
+                                    {% if evento.ensaios_extras == 'Nenhum' %}
+                                        <span class="badge bg-secondary">{{ evento.ensaios_extras }}</span>
+                                    {% else %}
+                                        <span class="badge bg-info">{{ evento.ensaios_extras }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="align-middle">{{ evento.valor_negociado|moeda }}</td>
+                                <td class="align-middle">{{ evento.valor_pago|moeda }}</td>
+                                <td class="align-middle">
+                                    {% if evento.status == 'Agendado' %}
+                                        <span class="badge bg-warning">{{ evento.status }}</span>
+                                    {% elif evento.status == 'Realizado' %}
+                                        <span class="badge bg-success">{{ evento.status }}</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">{{ evento.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="align-middle" style="white-space: nowrap;">
+                                    {% if evento.valor_pago < evento.valor_negociado %}
+                                        {% if evento.status == 'Cancelado' %}
+                                        <button class="btn btn-sm btn-secondary me-1" disabled><i class="fas fa-dollar-sign"></i></button>
+                                        {% else %}
+                                        <button class="btn btn-sm btn-success me-1" onclick="registrarPagamento({{ evento.id }}, {{ evento.valor_negociado - evento.valor_pago }})"><i class="fas fa-dollar-sign"></i></button>
+                                        {% endif %}
+                                    {% endif %}
+                                    <button class="btn btn-sm btn-warning me-1" onclick="editarEvento({{ evento.id }}, '{{ evento.cliente }}', '{{ evento.tipo_servico }}', '{{ evento.data_evento|data('%Y-%m-%d') }}', {{ evento.valor_negociado }}, {{ evento.valor_pago }}, '{{ evento.status }}', '{{ evento.observacoes|replace("'", "\\'") }}', '{{ evento.ensaios_extras }}')"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-sm btn-info me-1" onclick="verDetalhes('{{ evento.cliente }}', '{{ evento.tipo_servico }}', '{{ evento.data_evento|data }}', {{ evento.valor_negociado }}, {{ evento.valor_pago }}, '{{ evento.status }}', '{{ evento.data_cadastro|datahora }}', '{{ evento.observacoes|replace("'", "\\'") }}', '{{ evento.ensaios_extras }}')"><i class="fas fa-eye"></i></button>
+                                    <button class="btn btn-sm btn-danger" onclick="excluirEvento({{ evento.id }}, '{{ evento.cliente }}')"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <th colspan="4" class="text-end">TOTAIS (filtrados):</th>
+                                <th class="text-success fw-bold" id="totalNegociado">{{ eventos|sum(attribute='valor_negociado')|moeda }}</th>
+                                <th class="text-info fw-bold" id="totalPago">{{ eventos|sum(attribute='valor_pago')|moeda }}</th>
+                                <th></th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
         </div>
+
     </div>
 </div>
 
-<!-- Modal para Editar Evento -->
+<!-- Modal Editar Evento -->
 <div class="modal fade" id="editarEventoModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-warning text-dark">
-                <h5 class="modal-title">
-                    <i class="fas fa-edit"></i> Editar Evento
-                </h5>
+                <h5 class="modal-title"><i class="fas fa-edit"></i> Editar Evento</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <form id="formEditarEvento">
                     <div class="row">
                         <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Cliente *</label>
-                                <input type="text" id="editCliente" class="form-control" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Tipo de Serviço *</label>
-                                <select id="editTipoServico" class="form-select" required>
-                                    <option value="Fotografia">Fotografia</option>
-                                    <option value="Storymaker">Storymaker</option>
-                                    <option value="Fotografia + Storymaker">Fotografia + Storymaker</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Data do Evento *</label>
-                                <input type="date" id="editDataEvento" class="form-control" required>
-                            </div>
+                            <div class="mb-3"><label class="form-label">Cliente *</label><input type="text" id="editCliente" class="form-control" required></div>
+                            <div class="mb-3"><label class="form-label">Tipo de Serviço *</label><select id="editTipoServico" class="form-select" required><option value="Fotografia">Fotografia</option><option value="Storymaker">Storymaker</option><option value="Fotografia + Storymaker">Fotografia + Storymaker</option></select></div>
+                            <div class="mb-3"><label class="form-label">Data do Evento *</label><input type="date" id="editDataEvento" class="form-control" required></div>
                         </div>
                         <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Valor Negociado (R$) *</label>
-                                <input type="number" id="editValorNegociado" class="form-control" step="0.01" required onblur="formatarCampoMoeda(this)">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Valor Pago (R$)</label>
-                                <input type="number" id="editValorPago" class="form-control" step="0.01" onblur="formatarCampoMoeda(this)">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Status</label>
-                                <select id="editStatus" class="form-select">
-                                    <option value="Agendado">Agendado</option>
-                                    <option value="Realizado">Realizado</option>
-                                    <option value="Cancelado">Cancelado</option>
-                                    <option value="Pendente">Pendente</option>
-                                </select>
-                            </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="editTemEnsaiosExtras" name="editTemEnsaiosExtras" onchange="toggleEditEnsaiosExtras()">
-                            <label class="form-check-label" for="editTemEnsaiosExtras">
-                                Possui Ensaios Extras
-                            </label>
-                        </div>
-                        <div id="editEnsaiosExtrasOptions" class="mt-3" style="display: none;">
-                            <label class="form-label">Tipo de Ensaio Extra</label>
-                            <div class="mb-2">
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editTipoEnsaio" id="editPreWedding" value="Pre-Wedding">
-                                    <label class="form-check-label" for="editPreWedding">Pre-Wedding</label>
+                            <div class="mb-3"><label class="form-label">Valor Negociado (R$) *</label><input type="number" id="editValorNegociado" class="form-control" step="0.01" required onblur="formatarCampoMoeda(this)"></div>
+                            <div class="mb-3"><label class="form-label">Valor Pago (R$)</label><input type="number" id="editValorPago" class="form-control" step="0.01" onblur="formatarCampoMoeda(this)"></div>
+                            <div class="mb-3"><label class="form-label">Status</label><select id="editStatus" class="form-select"><option value="Agendado">Agendado</option><option value="Realizado">Realizado</option><option value="Cancelado">Cancelado</option><option value="Pendente">Pendente</option></select></div>
+                            <div class="form-check"><input class="form-check-input" type="checkbox" id="editTemEnsaiosExtras" onchange="toggleEditEnsaiosExtras()"><label class="form-check-label" for="editTemEnsaiosExtras">Possui Ensaios Extras</label></div>
+                            <div id="editEnsaiosExtrasOptions" class="mt-3" style="display: none;">
+                                <label class="form-label">Tipo de Ensaio Extra</label>
+                                <div class="mb-2">
+                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="editTipoEnsaio" id="editPreWedding" value="Pre-Wedding"><label class="form-check-label" for="editPreWedding">Pre-Wedding</label></div>
+                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="editTipoEnsaio" id="editBookFoto" value="Book Fotográfico (15 anos)"><label class="form-check-label" for="editBookFoto">Book Fotográfico (15 anos)</label></div>
+                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="editTipoEnsaio" id="editEnsaioCasal" value="Ensaio Casal"><label class="form-check-label" for="editEnsaioCasal">Ensaio Casal</label></div>
                                 </div>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editTipoEnsaio" id="editBookFoto" value="Book Fotográfico (15 anos)">
-                                    <label class="form-check-label" for="editBookFoto">Book Fotográfico (15 anos)</label>
+                                <div class="mb-2">
+                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="editTipoEnsaio" id="editEnsaioIndividual" value="Ensaio Individual"><label class="form-check-label" for="editEnsaioIndividual">Ensaio Individual</label></div>
+                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="editTipoEnsaio" id="editEnsaioFamilia" value="Ensaio Família"><label class="form-check-label" for="editEnsaioFamilia">Ensaio Família</label></div>
+                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="editTipoEnsaio" id="editOutros" value="Outros" onchange="toggleEditOutrosEnsaio()"><label class="form-check-label" for="editOutros">Outros</label></div>
                                 </div>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editTipoEnsaio" id="editEnsaioCasal" value="Ensaio Casal">
-                                    <label class="form-check-label" for="editEnsaioCasal">Ensaio Casal</label>
-                                </div>
+                                <div id="editOutrosEnsaioField" class="mt-2" style="display: none;"><input type="text" class="form-control" id="editOutrosEnsaioTexto" placeholder="Especifique o tipo de ensaio..."></div>
                             </div>
-                            <div class="mb-2">
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editTipoEnsaio" id="editEnsaioIndividual" value="Ensaio Individual">
-                                    <label class="form-check-label" for="editEnsaioIndividual">Ensaio Individual</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editTipoEnsaio" id="editEnsaioFamilia" value="Ensaio Família">
-                                    <label class="form-check-label" for="editEnsaioFamilia">Ensaio Família</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="editTipoEnsaio" id="editOutros" value="Outros" onchange="toggleEditOutrosEnsaio()">
-                                    <label class="form-check-label" for="editOutros">Outros</label>
-                                </div>
-                            </div>
-                            <div id="editOutrosEnsaioField" class="mt-2" style="display: none;">
-                                <input type="text" class="form-control" id="editOutrosEnsaioTexto" name="editOutrosEnsaioTexto" placeholder="Especifique o tipo de ensaio...">
-                            </div>
-                        </div>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Observações</label>
-                        <textarea id="editObservacoes" class="form-control" rows="3" placeholder="Informações adicionais sobre o evento..."></textarea>
-                    </div>
+                    <div class="mb-3"><label class="form-label">Observações</label><textarea id="editObservacoes" class="form-control" rows="3" placeholder="Informações adicionais..."></textarea></div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times"></i> Cancelar
-                </button>
-                <button type="button" class="btn btn-warning" onclick="salvarEdicaoEvento()">
-                    <i class="fas fa-save"></i> Salvar Alterações
-                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times"></i> Cancelar</button>
+                <button type="button" class="btn btn-warning" onclick="salvarEdicaoEvento()"><i class="fas fa-save"></i> Salvar</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal de Detalhes (Único e Reutilizável) -->
+<!-- Modal Detalhes -->
 <div class="modal fade" id="detalhesModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Detalhes do Evento</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-calendar-alt"></i> Detalhes do Evento</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <p><strong>Cliente:</strong> <span id="detalheCliente"></span></p>
@@ -211,58 +261,45 @@
                 <p><strong>Data de Cadastro:</strong> <span id="detalheDataCadastro"></span></p>
                 <p id="detalheObservacoesContainer" style="display: none;"><strong>Observações:</strong> <span id="detalheObservacoes"></span></p>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button></div>
         </div>
     </div>
 </div>
 
-<!-- Modal para Confirmação de Exclusão -->
+<!-- Modal Exclusão -->
 <div class="modal fade" id="confirmarExclusaoModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">
-                    <i class="fas fa-exclamation-triangle"></i> Confirmar Exclusão
-                </h5>
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle"></i> Confirmar Exclusão</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="alert alert-warning">
-                    <i class="fas fa-warning"></i> <strong>Atenção!</strong> Esta ação não pode ser desfeita.
-                </div>
+                <div class="alert alert-warning"><i class="fas fa-warning"></i> Esta ação não pode ser desfeita.</div>
                 <p id="mensagemConfirmacao"></p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times"></i> Cancelar
-                </button>
-                <button type="button" class="btn btn-danger" id="btnConfirmarExclusao">
-                    <i class="fas fa-trash"></i> Sim, Excluir
-                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times"></i> Cancelar</button>
+                <button type="button" class="btn btn-danger" id="btnConfirmarExclusao"><i class="fas fa-trash"></i> Sim, Excluir</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal para Pagamento -->
+<!-- Modal Pagamento -->
 <div class="modal fade" id="pagamentoModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Registrar Pagamento</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-dollar-sign"></i> Registrar Pagamento</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">Valor a Pagar</label>
-                    <input type="number" id="valorPagamento" class="form-control" step="0.01">
-                </div>
+                <div class="mb-3"><label class="form-label">Valor a Pagar</label><input type="number" id="valorPagamento" class="form-control" step="0.01"></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success" onclick="confirmarPagamento()">Confirmar Pagamento</button>
+                <button type="button" class="btn btn-success" onclick="confirmarPagamento()"><i class="fas fa-check"></i> Confirmar</button>
             </div>
         </div>
     </div>
@@ -270,223 +307,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-// Função para ver detalhes do evento
-function verDetalhes(cliente, tipoServico, dataEvento, valorNegociado, valorPago, status, dataCadastro, observacoes, ensaiosExtras) {
-    document.getElementById('detalheCliente').textContent = cliente || 'Cliente não informado';
-    document.getElementById('detalheTipoServico').textContent = tipoServico;
-    document.getElementById('detalheDataEvento').textContent = dataEvento;
-    document.getElementById('detalheEnsaiosExtras').textContent = ensaiosExtras || 'Nenhum';
-    document.getElementById('detalheValorNegociado').textContent = 'R$ ' + valorNegociado.toFixed(2).replace('.', ',');
-    document.getElementById('detalheValorPago').textContent = 'R$ ' + valorPago.toFixed(2).replace('.', ',');
-    document.getElementById('detalheStatus').textContent = status;
-    document.getElementById('detalheDataCadastro').textContent = dataCadastro;
-    
-    const obsContainer = document.getElementById('detalheObservacoesContainer');
-    const obsTexto = document.getElementById('detalheObservacoes');
-    
-    if (observacoes && observacoes.trim() !== '' && observacoes !== 'None') {
-        obsTexto.textContent = observacoes;
-        obsContainer.style.display = 'block';
-    } else {
-        obsContainer.style.display = 'none';
-    }
-    
-    const modal = new bootstrap.Modal(document.getElementById('detalhesModal'));
-    modal.show();
-}
-
-// Função para formatação automática de campos monetários
-function formatarCampoMoeda(campo) {
-    const valor = parseFloat(campo.value);
-    if (!isNaN(valor)) {
-        campo.value = valor.toFixed(2);
-    }
-}
-
-// Funções para o modal de edição
-function toggleEditEnsaiosExtras() {
-    const checkbox = document.getElementById('editTemEnsaiosExtras');
-    const options = document.getElementById('editEnsaiosExtrasOptions');
-    
-    if (checkbox.checked) {
-        options.style.display = 'block';
-    } else {
-        options.style.display = 'none';
-        document.querySelectorAll('input[name="editTipoEnsaio"]').forEach(radio => radio.checked = false);
-        document.getElementById('editOutrosEnsaioField').style.display = 'none';
-        document.getElementById('editOutrosEnsaioTexto').value = '';
-    }
-}
-
-function toggleEditOutrosEnsaio() {
-    const outrosRadio = document.getElementById('editOutros');
-    const outrosField = document.getElementById('editOutrosEnsaioField');
-    
-    if (outrosRadio.checked) {
-        outrosField.style.display = 'block';
-    } else {
-        outrosField.style.display = 'none';
-        document.getElementById('editOutrosEnsaioTexto').value = '';
-    }
-}
-
-let eventoIdPagamento = null;
-let eventoIdExclusao = null;
-let eventoIdEdicao = null;
-
-function registrarPagamento(eventoId, valorRestante) {
-    eventoIdPagamento = eventoId;
-    document.getElementById('valorPagamento').value = valorRestante.toFixed(2);
-    new bootstrap.Modal(document.getElementById('pagamentoModal')).show();
-}
-
-function confirmarPagamento() {
-    const valor = parseFloat(document.getElementById('valorPagamento').value);
-    
-    if (!valor || valor <= 0) {
-        alert('Por favor, insira um valor válido.');
-        return;
-    }
-    
-    fetch(`/evento/${eventoIdPagamento}/pagar`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            valor: valor
-        })
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            bootstrap.Modal.getInstance(document.getElementById('pagamentoModal')).hide();
-            location.reload();
-        } else {
-            alert('Erro: ' + (data.error || 'Erro desconhecido'));
-        }
-    })
-    .catch(error => {
-        console.error('Erro:', error);
-        alert('Erro ao processar pagamento: ' + error.message);
-    });
-}
-
-function editarEvento(eventoId, cliente, tipoServico, dataEvento, valorNegociado, valorPago, status, observacoes, ensaiosExtras) {
-    eventoIdEdicao = eventoId;
-    
-    document.getElementById('editCliente').value = cliente;
-    document.getElementById('editTipoServico').value = tipoServico;
-    document.getElementById('editDataEvento').value = dataEvento;
-    document.getElementById('editValorNegociado').value = valorNegociado;
-    document.getElementById('editValorPago').value = valorPago;
-    document.getElementById('editStatus').value = status;
-    document.getElementById('editObservacoes').value = observacoes;
-    
-    // Configurar ensaios extras
-    const temEnsaios = ensaiosExtras && ensaiosExtras !== 'Nenhum';
-    document.getElementById('editTemEnsaiosExtras').checked = temEnsaios;
-    
-    if (temEnsaios) {
-        document.getElementById('editEnsaiosExtrasOptions').style.display = 'block';
-        
-        // Verificar se é uma opção pré-definida
-        const opcoesPredefinidas = ['Pre-Wedding', 'Book Fotográfico (15 anos)', 'Ensaio Casal', 'Ensaio Individual', 'Ensaio Família'];
-        const radioEncontrado = opcoesPredefinidas.find(opcao => opcao === ensaiosExtras);
-        
-        if (radioEncontrado) {
-            document.querySelector(`input[name="editTipoEnsaio"][value="${radioEncontrado}"]`).checked = true;
-        } else {
-            // É "Outros"
-            document.getElementById('editOutros').checked = true;
-            document.getElementById('editOutrosEnsaioField').style.display = 'block';
-            document.getElementById('editOutrosEnsaioTexto').value = ensaiosExtras;
-        }
-    } else {
-        document.getElementById('editEnsaiosExtrasOptions').style.display = 'none';
-    }
-    
-    new bootstrap.Modal(document.getElementById('editarEventoModal')).show();
-}
-
-function salvarEdicaoEvento() {
-    // Processar ensaios extras
-    const temEnsaios = document.getElementById('editTemEnsaiosExtras').checked;
-    let ensaiosExtras = 'Nenhum';
-    
-    if (temEnsaios) {
-        const tipoSelecionado = document.querySelector('input[name="editTipoEnsaio"]:checked');
-        if (tipoSelecionado) {
-            if (tipoSelecionado.value === 'Outros') {
-                ensaiosExtras = document.getElementById('editOutrosEnsaioTexto').value || 'Outros';
-            } else {
-                ensaiosExtras = tipoSelecionado.value;
-            }
-        }
-    }
-    
-    const dados = {
-        cliente: document.getElementById('editCliente').value,
-        tipo_servico: document.getElementById('editTipoServico').value,
-        data_evento: document.getElementById('editDataEvento').value,
-        valor_negociado: parseFloat(document.getElementById('editValorNegociado').value),
-        valor_pago: parseFloat(document.getElementById('editValorPago').value),
-        status: document.getElementById('editStatus').value,
-        ensaios_extras: ensaiosExtras,
-        observacoes: document.getElementById('editObservacoes').value
-    };
-    
-    fetch(`/evento/${eventoIdEdicao}/editar`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(dados)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            bootstrap.Modal.getInstance(document.getElementById('editarEventoModal')).hide();
-            location.reload();
-        }
-    })
-    .catch(error => {
-        alert('Erro ao salvar alterações. Tente novamente.');
-    });
-}
-
-function excluirEvento(eventoId, nomeCliente) {
-    eventoIdExclusao = eventoId;
-    document.getElementById('mensagemConfirmacao').innerHTML = 
-        `Deseja realmente excluir o evento do cliente <strong>"${nomeCliente}"</strong>?`;
-    
-    const modal = new bootstrap.Modal(document.getElementById('confirmarExclusaoModal'));
-    modal.show();
-    
-    document.getElementById('btnConfirmarExclusao').onclick = function() {
-        fetch(`/evento/${eventoIdExclusao}/excluir`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                modal.hide();
-                location.reload();
-            }
-        })
-        .catch(error => {
-            alert('Erro ao excluir evento. Tente novamente.');
-        });
-    };
-}
-</script>
+<script src="{{ url_for('static', filename='js/eventos.js') }}"></script>
 {% endblock %}
