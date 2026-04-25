@@ -1,12 +1,16 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date
 import os
+import click
 import pandas as pd
 from werkzeug.utils import secure_filename
+import export_utils
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'sua-chave-secreta-aqui'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', os.urandom(24))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///fotografia.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -57,6 +61,30 @@ if not os.path.exists('uploads'):
 
 db = SQLAlchemy(app)
 
+# Flask-Login configuration
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Por favor, faça login para acessar o sistema.'
+login_manager.login_message_category = 'info'
+
+# Modelo de usuário
+class Usuario(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return Usuario.query.get(int(user_id))
+
 # Modelos do banco de dados
 class Evento(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -82,8 +110,115 @@ class Transacao(db.Model):
     data_transacao = db.Column(db.Date, nullable=False)
     categoria = db.Column(db.String(50))  # Equipamento, Transporte, etc.
 
+# CLI command para criar admin
+@app.cli.command('create-admin')
+@click.option('--username', prompt=True, help='Nome do usuário admin')
+@click.option('--password', prompt=True, hide_input=True, help='Senha do admin')
+def create_admin(username, password):
+    """Cria um usuário administrador."""
+    if Usuario.query.filter_by(username=username).first():
+        click.echo('Usuário já existe!')
+        return
+    user = Usuario(username=username)
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+    click.echo('Usuário admin criado com sucesso!')
+
+# Custom unauthorized handler
+@login_manager.unauthorized_handler
+def unauthorized():
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Autenticação necessária.'}), 401
+    flash('Por favor, faça login para acessar o sistema.', 'info')
+    return redirect(url_for('login', next=request.url))
+
 # Rotas
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    if request.method == 'POST':
+        username = request.form.get('username', '')
+        password = request.form.get('password', '')
+        remember = request.form.get('remember') == 'on'
+        try:
+            user = Usuario.query.filter_by(username=username).first()
+            if user and user.check_password(password):
+                login_user(user, remember=remember)
+                next_page = request.args.get('next')
+                if next_page and next_page.startswith('/'):
+                    return redirect(next_page)
+                return redirect(url_for('dashboard'))
+            flash('Usuário ou senha inválidos.', 'danger')
+        except Exception:
+            flash('Erro ao processar login. Tente novamente.', 'danger')
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+@app.route('/usuarios')
+@login_required
+def listar_usuarios():
+    if not current_user.is_admin:
+        flash('Apenas o administrador pode gerenciar usuários.', 'danger')
+        return redirect(url_for('dashboard'))
+    usuarios = Usuario.query.all()
+    return render_template('usuarios.html', usuarios=usuarios)
+
+@app.route('/usuario/novo', methods=['POST'])
+@login_required
+def novo_usuario():
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Sem permissão'}), 403
+    username = request.form.get('username', '').strip()
+    password = request.form.get('password', '')
+    if not username or not password:
+        flash('Usuário e senha são obrigatórios.', 'danger')
+        return redirect(url_for('listar_usuarios'))
+    if Usuario.query.filter_by(username=username).first():
+        flash(f'Usuário "{username}" já existe!', 'danger')
+        return redirect(url_for('listar_usuarios'))
+    is_admin = request.form.get('is_admin') == 'on'
+    user = Usuario(username=username, is_admin=is_admin)
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+    flash(f'Usuário "{username}" criado com sucesso!', 'success')
+    return redirect(url_for('listar_usuarios'))
+
+@app.route('/usuario/<int:id>/excluir', methods=['POST'])
+@login_required
+def excluir_usuario(id):
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Sem permissão'}), 403
+    user = Usuario.query.get_or_404(id)
+    if user.username == 'admin':
+        return jsonify({'success': False, 'error': 'Não é possível excluir o admin.'}), 400
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({'success': True})
+
+@app.route('/usuario/<int:id>/alterar-senha', methods=['POST'])
+@login_required
+def alterar_senha_usuario(id):
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Sem permissão'}), 403
+    user = Usuario.query.get_or_404(id)
+    data = request.get_json()
+    nova_senha = data.get('password', '')
+    if not nova_senha:
+        return jsonify({'success': False, 'error': 'Senha não pode ser vazia.'}), 400
+    user.set_password(nova_senha)
+    db.session.commit()
+    return jsonify({'success': True})
+
 @app.route('/')
+@login_required
 def dashboard():
     hoje = date.today()
     
@@ -148,6 +283,7 @@ def dashboard():
                          eventos=todos_eventos_calendario)
 
 @app.route('/eventos')
+@login_required
 def listar_eventos():
     eventos = Evento.query.order_by(Evento.data_evento.asc()).all()
     
@@ -166,6 +302,7 @@ def listar_eventos():
                          total_recebido=total_recebido)
 
 @app.route('/evento/novo', methods=['GET', 'POST'])
+@login_required
 def novo_evento():
     if request.method == 'POST':
         # Processar ensaios extras
@@ -207,6 +344,7 @@ def novo_evento():
     return render_template('novo_evento.html')
 
 @app.route('/api/verificar-data-evento')
+@login_required
 def verificar_data_evento():
     """Verifica se já existe evento na data especificada"""
     data = request.args.get('data')
@@ -239,6 +377,7 @@ def verificar_data_evento():
         return jsonify({'existe': False})
 
 @app.route('/evento/<int:id>/pagar', methods=['POST'])
+@login_required
 def registrar_pagamento(id):
     try:
         data = request.get_json()
@@ -285,6 +424,7 @@ def registrar_pagamento(id):
         return jsonify({'success': False, 'error': str(e)}), 400
 
 @app.route('/caixa')
+@login_required
 def caixa():
     # Buscar transações realizadas (Entrada e Saída) ordenadas por data
     transacoes_realizadas = Transacao.query.filter(
@@ -318,6 +458,7 @@ def caixa():
                          total_pendente=pendentes_total)
 
 @app.route('/transacao/nova', methods=['POST'])
+@login_required
 def nova_transacao():
     transacao = Transacao(
         tipo=request.form['tipo'],
@@ -331,6 +472,7 @@ def nova_transacao():
     return redirect(url_for('caixa'))
 
 @app.route('/evento/<int:id>/excluir', methods=['POST'])
+@login_required
 def excluir_evento(id):
     try:
         evento = Evento.query.get_or_404(id)
@@ -351,6 +493,7 @@ def excluir_evento(id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/evento/<int:id>/editar', methods=['POST'])
+@login_required
 def editar_evento(id):
     evento = Evento.query.get_or_404(id)
     
@@ -370,6 +513,7 @@ def editar_evento(id):
     return jsonify({'success': True})
 
 @app.route('/transacao/<int:id>/reverter', methods=['POST'])
+@login_required
 def reverter_pagamento(id):
     try:
         transacao = Transacao.query.get_or_404(id)
@@ -422,6 +566,7 @@ def reverter_pagamento(id):
         return jsonify({'success': False, 'error': str(e)}), 400
 
 @app.route('/transacao/<int:id>/excluir', methods=['POST'])
+@login_required
 def excluir_transacao(id):
     try:
         transacao = Transacao.query.get_or_404(id)
@@ -444,6 +589,7 @@ def excluir_transacao(id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/transacao/<int:id>/editar', methods=['POST'])
+@login_required
 def editar_transacao(id):
     try:
         transacao = Transacao.query.get_or_404(id)
@@ -463,10 +609,12 @@ def editar_transacao(id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/importar')
+@login_required
 def importar():
     return render_template('importar.html')
 
 @app.route('/importar/eventos', methods=['POST'])
+@login_required
 def importar_eventos():
     if 'arquivo' not in request.files:
         flash('Nenhum arquivo selecionado', 'error')
@@ -531,6 +679,7 @@ def importar_eventos():
     return redirect(url_for('importar'))
 
 @app.route('/importar/transacoes', methods=['POST'])
+@login_required
 def importar_transacoes():
     if 'arquivo' not in request.files:
         flash('Nenhum arquivo selecionado', 'error')
@@ -590,31 +739,59 @@ def importar_transacoes():
     return redirect(url_for('importar'))
 
 @app.route('/api/dashboard-data')
+@login_required
 def dashboard_data():
     try:
-        # Receita PLANEJADA por mês (todos os eventos, incluindo cancelados)
-        planejado_por_mes = db.session.query(
+        from datetime import timedelta
+        from dateutil.relativedelta import relativedelta
+        
+        periodo = request.args.get('periodo', 'ano')  # semana, mes, trimestre, ano, tudo
+        hoje = date.today()
+        
+        if periodo == 'semana':
+            data_inicio = hoje - timedelta(days=hoje.weekday())
+            data_fim = data_inicio + timedelta(days=6)
+        elif periodo == 'mes':
+            data_inicio = hoje.replace(day=1)
+            proximo_mes = data_inicio + relativedelta(months=1)
+            data_fim = proximo_mes - timedelta(days=1)
+        elif periodo == 'trimestre':
+            trimestre_inicio = ((hoje.month - 1) // 3) * 3 + 1
+            data_inicio = hoje.replace(month=trimestre_inicio, day=1)
+            data_fim = data_inicio + relativedelta(months=3) - timedelta(days=1)
+        elif periodo == 'ano':
+            data_inicio = hoje.replace(month=1, day=1)
+            data_fim = hoje.replace(month=12, day=31)
+        else:  # tudo
+            data_inicio = None
+            data_fim = None
+        
+        def filtro_periodo(query):
+            if data_inicio and data_fim:
+                return query.filter(Evento.data_evento >= data_inicio, Evento.data_evento <= data_fim)
+            return query
+        
+        # Receita PLANEJADA por mês
+        q_plan = db.session.query(
             db.func.strftime('%Y-%m', Evento.data_evento).label('mes'),
             db.func.sum(Evento.valor_negociado).label('receita')
-        ).group_by('mes').order_by('mes').all()
+        )
+        planejado_por_mes = filtro_periodo(q_plan).group_by('mes').order_by('mes').all()
         
         # Receita REAL por mês (excluindo cancelados)
-        real_por_mes = db.session.query(
+        q_real = db.session.query(
             db.func.strftime('%Y-%m', Evento.data_evento).label('mes'),
             db.func.sum(Evento.valor_negociado).label('receita')
-        ).filter(
-            Evento.status != 'Cancelado'
-        ).group_by('mes').order_by('mes').all()
+        ).filter(Evento.status != 'Cancelado')
+        real_por_mes = filtro_periodo(q_real).group_by('mes').order_by('mes').all()
         
-        # Recebido por mês (valor_pago efetivo)
-        recebido_por_mes = db.session.query(
+        # Recebido por mês
+        q_rec = db.session.query(
             db.func.strftime('%Y-%m', Evento.data_evento).label('mes'),
             db.func.sum(Evento.valor_pago).label('receita')
-        ).filter(
-            Evento.valor_pago > 0
-        ).group_by('mes').order_by('mes').all()
+        ).filter(Evento.valor_pago > 0)
+        recebido_por_mes = filtro_periodo(q_rec).group_by('mes').order_by('mes').all()
         
-        # Montar dicionários para cruzar os meses
         planejado_dict = {r.mes: float(r.receita or 0) for r in planejado_por_mes}
         real_dict = {r.mes: float(r.receita or 0) for r in real_por_mes}
         recebido_dict = {r.mes: float(r.receita or 0) for r in recebido_por_mes}
@@ -630,26 +807,48 @@ def dashboard_data():
                 'recebido': recebido_dict.get(mes, 0)
             })
         
-        # Serviços por tipo (apenas agendados e realizados)
-        servicos_por_tipo = db.session.query(
+        # Serviços por tipo
+        q_serv = db.session.query(
             Evento.tipo_servico,
             db.func.count(Evento.id).label('total')
-        ).filter(
-            Evento.status.in_(['Agendado', 'Realizado', 'Pendente'])
-        ).group_by(Evento.tipo_servico).all()
+        ).filter(Evento.status.in_(['Agendado', 'Realizado', 'Pendente']))
+        servicos_por_tipo = filtro_periodo(q_serv).group_by(Evento.tipo_servico).all()
+        
+        # Totais do período para os cards
+        q_totais = Evento.query
+        if data_inicio and data_fim:
+            q_totais = q_totais.filter(Evento.data_evento >= data_inicio, Evento.data_evento <= data_fim)
+        eventos_periodo = q_totais.all()
+        
+        total_eventos = len(eventos_periodo)
+        total_negociado = sum(e.valor_negociado for e in eventos_periodo if e.status != 'Cancelado')
+        total_recebido = sum(e.valor_pago for e in eventos_periodo if e.status != 'Cancelado')
+        agendados = sum(1 for e in eventos_periodo if e.status == 'Agendado')
+        realizados = sum(1 for e in eventos_periodo if e.status == 'Realizado')
+        cancelados = sum(1 for e in eventos_periodo if e.status == 'Cancelado')
         
         return jsonify({
             'receita_por_mes': receita_completa,
-            'servicos_por_tipo': [{'tipo': s.tipo_servico, 'total': s.total} for s in servicos_por_tipo]
+            'servicos_por_tipo': [{'tipo': s.tipo_servico, 'total': s.total} for s in servicos_por_tipo],
+            'totais': {
+                'total_eventos': total_eventos,
+                'total_negociado': total_negociado,
+                'total_recebido': total_recebido,
+                'agendados': agendados,
+                'realizados': realizados,
+                'cancelados': cancelados
+            }
         })
     except Exception as e:
         print(f"Erro na API dashboard-data: {e}")
         return jsonify({
             'receita_por_mes': [],
-            'servicos_por_tipo': []
+            'servicos_por_tipo': [],
+            'totais': {}
         })
 
 @app.route('/api/eventos-por-tipo')
+@login_required
 def eventos_por_tipo():
     tipo = request.args.get('tipo', '')
     try:
@@ -677,6 +876,7 @@ def eventos_por_tipo():
         return jsonify([])
 
 @app.route('/api/eventos-calendario')
+@login_required
 def eventos_calendario():
     try:
         eventos = Evento.query.all()
@@ -708,6 +908,7 @@ def eventos_calendario():
         return jsonify([])
 
 @app.route('/api/alertas-eventos')
+@login_required
 def alertas_eventos():
     try:
         from datetime import timedelta
@@ -752,7 +953,233 @@ def alertas_eventos():
         print(f"Erro na API alertas-eventos: {e}")
         return jsonify([])
 
+# ---------------------------------------------------------------------------
+# Rotas de Exportação
+# ---------------------------------------------------------------------------
+
+LOGO_PATH = os.path.join('static', 'img', 'photoprostudio3.png')
+
+
+@app.route('/exportar/eventos/excel')
+@login_required
+def exportar_eventos_excel():
+    try:
+        query = Evento.query
+        cliente = request.args.get('cliente', '').strip()
+        servico = request.args.get('servico', '').strip()
+        data_de = request.args.get('data_de', '').strip()
+        data_ate = request.args.get('data_ate', '').strip()
+        status = request.args.get('status', '').strip()
+
+        if cliente:
+            query = query.filter(Evento.cliente.ilike(f'%{cliente}%'))
+        if servico:
+            query = query.filter(Evento.tipo_servico == servico)
+        if data_de:
+            query = query.filter(Evento.data_evento >= datetime.strptime(data_de, '%Y-%m-%d').date())
+        if data_ate:
+            query = query.filter(Evento.data_evento <= datetime.strptime(data_ate, '%Y-%m-%d').date())
+        if status:
+            query = query.filter(Evento.status == status)
+
+        eventos = query.order_by(Evento.data_evento.asc()).all()
+        eventos_dict = [{
+            'cliente': e.cliente,
+            'tipo_servico': e.tipo_servico,
+            'data_evento': e.data_evento,
+            'ensaios_extras': e.ensaios_extras,
+            'valor_negociado': e.valor_negociado,
+            'valor_pago': e.valor_pago,
+            'status': e.status,
+        } for e in eventos]
+
+        hoje = date.today()
+        buf = export_utils.gerar_excel_eventos(eventos_dict, hoje)
+        filename = f'eventos_{hoje.strftime("%Y-%m-%d")}.xlsx'
+        return send_file(buf, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                         as_attachment=True, download_name=filename)
+    except Exception as e:
+        return jsonify({'error': f'Erro ao gerar Excel: {str(e)}'}), 500
+
+
+@app.route('/exportar/eventos/pdf')
+@login_required
+def exportar_eventos_pdf():
+    try:
+        query = Evento.query
+        cliente = request.args.get('cliente', '').strip()
+        servico = request.args.get('servico', '').strip()
+        data_de = request.args.get('data_de', '').strip()
+        data_ate = request.args.get('data_ate', '').strip()
+        status = request.args.get('status', '').strip()
+
+        if cliente:
+            query = query.filter(Evento.cliente.ilike(f'%{cliente}%'))
+        if servico:
+            query = query.filter(Evento.tipo_servico == servico)
+        if data_de:
+            query = query.filter(Evento.data_evento >= datetime.strptime(data_de, '%Y-%m-%d').date())
+        if data_ate:
+            query = query.filter(Evento.data_evento <= datetime.strptime(data_ate, '%Y-%m-%d').date())
+        if status:
+            query = query.filter(Evento.status == status)
+
+        eventos = query.order_by(Evento.data_evento.asc()).all()
+        eventos_dict = [{
+            'cliente': e.cliente,
+            'tipo_servico': e.tipo_servico,
+            'data_evento': e.data_evento,
+            'ensaios_extras': e.ensaios_extras,
+            'valor_negociado': e.valor_negociado,
+            'valor_pago': e.valor_pago,
+            'status': e.status,
+        } for e in eventos]
+
+        hoje = date.today()
+        buf = export_utils.gerar_pdf_eventos(eventos_dict, hoje, LOGO_PATH)
+        filename = f'eventos_{hoje.strftime("%Y-%m-%d")}.pdf'
+        return send_file(buf, mimetype='application/pdf',
+                         as_attachment=True, download_name=filename)
+    except Exception as e:
+        return jsonify({'error': f'Erro ao gerar PDF: {str(e)}'}), 500
+
+
+@app.route('/exportar/caixa/excel')
+@login_required
+def exportar_caixa_excel():
+    try:
+        transacoes_realizadas = Transacao.query.filter(
+            Transacao.tipo.in_(['Entrada', 'Saída'])
+        ).order_by(Transacao.data_transacao.desc()).all()
+
+        transacoes_pendentes = db.session.query(Transacao).join(
+            Evento, Transacao.evento_id == Evento.id
+        ).filter(
+            Transacao.tipo == 'Entrada Pendente',
+            Evento.status.notin_(['Cancelado']),
+            Evento.valor_pago < Evento.valor_negociado
+        ).order_by(Transacao.data_transacao.asc()).all()
+
+        entradas = db.session.query(db.func.sum(Transacao.valor)).filter(Transacao.tipo == 'Entrada').scalar() or 0
+        saidas = db.session.query(db.func.sum(Transacao.valor)).filter(Transacao.tipo == 'Saída').scalar() or 0
+        saldo = entradas - saidas
+        total_pendente = sum(t.valor for t in transacoes_pendentes)
+
+        tx_dict = [{'data_transacao': t.data_transacao, 'tipo': t.tipo,
+                     'descricao': t.descricao, 'categoria': t.categoria or '',
+                     'valor': t.valor} for t in transacoes_realizadas]
+        pend_dict = [{'data_transacao': t.data_transacao, 'descricao': t.descricao,
+                      'valor': t.valor} for t in transacoes_pendentes]
+
+        hoje = date.today()
+        buf = export_utils.gerar_excel_caixa(tx_dict, pend_dict, entradas, saidas, saldo, total_pendente, hoje)
+        filename = f'caixa_{hoje.strftime("%Y-%m-%d")}.xlsx'
+        return send_file(buf, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                         as_attachment=True, download_name=filename)
+    except Exception as e:
+        return jsonify({'error': f'Erro ao gerar Excel: {str(e)}'}), 500
+
+
+@app.route('/exportar/caixa/pdf')
+@login_required
+def exportar_caixa_pdf():
+    try:
+        transacoes_realizadas = Transacao.query.filter(
+            Transacao.tipo.in_(['Entrada', 'Saída'])
+        ).order_by(Transacao.data_transacao.desc()).all()
+
+        transacoes_pendentes = db.session.query(Transacao).join(
+            Evento, Transacao.evento_id == Evento.id
+        ).filter(
+            Transacao.tipo == 'Entrada Pendente',
+            Evento.status.notin_(['Cancelado']),
+            Evento.valor_pago < Evento.valor_negociado
+        ).order_by(Transacao.data_transacao.asc()).all()
+
+        entradas = db.session.query(db.func.sum(Transacao.valor)).filter(Transacao.tipo == 'Entrada').scalar() or 0
+        saidas = db.session.query(db.func.sum(Transacao.valor)).filter(Transacao.tipo == 'Saída').scalar() or 0
+        saldo = entradas - saidas
+
+        tx_dict = [{'data_transacao': t.data_transacao, 'tipo': t.tipo,
+                     'descricao': t.descricao, 'categoria': t.categoria or '',
+                     'valor': t.valor} for t in transacoes_realizadas]
+        pend_dict = [{'data_transacao': t.data_transacao, 'descricao': t.descricao,
+                      'valor': t.valor} for t in transacoes_pendentes]
+
+        hoje = date.today()
+        buf = export_utils.gerar_pdf_caixa(tx_dict, pend_dict, entradas, saidas, saldo, hoje, LOGO_PATH)
+        filename = f'caixa_{hoje.strftime("%Y-%m-%d")}.pdf'
+        return send_file(buf, mimetype='application/pdf',
+                         as_attachment=True, download_name=filename)
+    except Exception as e:
+        return jsonify({'error': f'Erro ao gerar PDF: {str(e)}'}), 500
+
+
+@app.route('/exportar/relatorio-mensal')
+@login_required
+def exportar_relatorio_mensal():
+    try:
+        mes = request.args.get('mes', type=int)
+        ano = request.args.get('ano', type=int)
+        if not mes or not ano or mes < 1 or mes > 12 or ano < 2000:
+            return jsonify({'error': 'Mês/ano inválido'}), 400
+
+        # Eventos do mês (excluindo cancelados para totais)
+        mes_str = f'{ano:04d}-{mes:02d}'
+        eventos_mes = Evento.query.filter(
+            db.func.strftime('%Y-%m', Evento.data_evento) == mes_str
+        ).order_by(Evento.data_evento.asc()).all()
+
+        eventos_dict = [{
+            'cliente': e.cliente,
+            'tipo_servico': e.tipo_servico,
+            'data_evento': e.data_evento,
+            'valor_negociado': e.valor_negociado,
+            'valor_pago': e.valor_pago,
+            'status': e.status,
+        } for e in eventos_mes]
+
+        # Transações do mês (Entrada e Saída)
+        transacoes_mes = Transacao.query.filter(
+            db.func.strftime('%Y-%m', Transacao.data_transacao) == mes_str,
+            Transacao.tipo.in_(['Entrada', 'Saída'])
+        ).order_by(Transacao.data_transacao.asc()).all()
+
+        tx_dict = [{'data_transacao': t.data_transacao, 'tipo': t.tipo,
+                     'descricao': t.descricao, 'categoria': t.categoria or '',
+                     'valor': t.valor} for t in transacoes_mes]
+
+        # Calcular resumo
+        total_entradas = sum(t.valor for t in transacoes_mes if t.tipo == 'Entrada')
+        total_saidas = sum(t.valor for t in transacoes_mes if t.tipo == 'Saída')
+        eventos_nao_cancelados = [e for e in eventos_mes if e.status != 'Cancelado']
+        total_negociado = sum(e.valor_negociado for e in eventos_nao_cancelados)
+        total_recebido = sum(e.valor_pago for e in eventos_nao_cancelados)
+
+        resumo = {
+            'total_entradas': total_entradas,
+            'total_saidas': total_saidas,
+            'saldo_mes': total_entradas - total_saidas,
+            'total_negociado': total_negociado,
+            'total_recebido': total_recebido,
+            'total_pendente': total_negociado - total_recebido,
+        }
+
+        buf = export_utils.gerar_pdf_relatorio_mensal(mes, ano, eventos_dict, tx_dict, resumo, LOGO_PATH)
+        filename = f'relatorio_mensal_{ano:04d}-{mes:02d}.pdf'
+        return send_file(buf, mimetype='application/pdf',
+                         as_attachment=True, download_name=filename)
+    except Exception as e:
+        return jsonify({'error': f'Erro ao gerar relatório: {str(e)}'}), 500
+
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        # Criar admin padrão se não existir nenhum usuário
+        if not Usuario.query.first():
+            admin = Usuario(username='admin', is_admin=True)
+            admin.set_password('admin')
+            db.session.add(admin)
+            db.session.commit()
     app.run(debug=True)

@@ -147,9 +147,30 @@ Fotografia{% endblock %} {% block content %}
         <!-- Ação rápida -->
         <div class="card mb-4 border-0 shadow">
             <div class="card-body text-center py-4">
-                <button class="btn btn-lg px-5" data-bs-toggle="modal" data-bs-target="#transacaoModal" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; border: none;">
-                    <i class="fas fa-plus-circle me-2"></i> Nova Transação
-                </button>
+                <div class="d-flex justify-content-center gap-2 flex-wrap">
+                    <button class="btn" onclick="exportar('caixa', 'excel', this)" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; border: none;">
+                        <i class="fas fa-file-excel me-1"></i> Exportar Excel
+                    </button>
+                    <button class="btn" onclick="exportar('caixa', 'pdf', this)" style="background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); color: white; border: none;">
+                        <i class="fas fa-file-pdf me-1"></i> Exportar PDF
+                    </button>
+                    <button class="btn btn-lg px-5" data-bs-toggle="modal" data-bs-target="#transacaoModal" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; border: none;">
+                        <i class="fas fa-plus-circle me-2"></i> Nova Transação
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Relatório Mensal -->
+        <div class="card mb-4 border-0 shadow">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap">
+                    <label class="form-label mb-0 fw-bold"><i class="fas fa-chart-bar me-1"></i> Relatório Mensal:</label>
+                    <input type="month" id="mesRelatorio" class="form-control form-control-sm" style="width: auto;">
+                    <button class="btn" onclick="gerarRelatorioMensal(this)" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; border: none;">
+                        <i class="fas fa-chart-bar me-1"></i> Gerar Relatório
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -394,5 +415,6 @@ Fotografia{% endblock %} {% block content %}
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/export.js') }}"></script>
 <script src="{{ url_for('static', filename='js/caixa.js') }}"></script>
 {% endblock %}

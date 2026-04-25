@@ -3,6 +3,18 @@
 {% block title %}Dashboard - Sistema de Fotografia{% endblock %}
 
 {% block content %}
+<!-- Seletor de Período -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="fas fa-chart-line"></i> Dashboard</h4>
+    <div class="btn-group btn-group-sm" id="btnPeriodo">
+        <button class="btn btn-outline-primary" onclick="trocarPeriodo('semana')">Semana</button>
+        <button class="btn btn-outline-primary" onclick="trocarPeriodo('mes')">Mês</button>
+        <button class="btn btn-outline-primary" onclick="trocarPeriodo('trimestre')">Trimestre</button>
+        <button class="btn btn-primary active" onclick="trocarPeriodo('ano')">Ano</button>
+        <button class="btn btn-outline-primary" onclick="trocarPeriodo('tudo')">Tudo</button>
+    </div>
+</div>
+
 <div class="row mb-4">
     <!-- Estatísticas Principais -->
     <div class="col-md-3">
@@ -685,101 +697,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     
     // Carregar dados do dashboard
-    fetch('/api/dashboard-data')
-        .then(response => response.json())
-        .then(data => {
-            console.log('Dados recebidos:', data);
-            
-            // Guardar dados globalmente para trocar visão
-            window.dadosReceita = data.receita_por_mes || [];
-            window.receitaChart = null;
-            
-            var receitaCtx = document.getElementById('receitaChart').getContext('2d');
-            
-            if (window.dadosReceita.length > 0) {
-                criarGraficoReceita('todos');
-            }
-
-            // Gráfico de Serviços - Animado
-            const servicosCtx = document.getElementById('servicosChart').getContext('2d');
-            
-            if (data.servicos_por_tipo && data.servicos_por_tipo.length > 0) {
-                var coresPizza = [
-                    { bg: 'rgba(102, 126, 234, 0.85)', hover: 'rgba(102, 126, 234, 1)' },
-                    { bg: 'rgba(240, 147, 251, 0.85)', hover: 'rgba(240, 147, 251, 1)' },
-                    { bg: 'rgba(67, 233, 123, 0.85)', hover: 'rgba(67, 233, 123, 1)' },
-                    { bg: 'rgba(250, 112, 154, 0.85)', hover: 'rgba(250, 112, 154, 1)' }
-                ];
-                
-                var servicosChart = new Chart(servicosCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: data.servicos_por_tipo.map(function(item) { return item.tipo; }),
-                        datasets: [{
-                            data: data.servicos_por_tipo.map(function(item) { return item.total; }),
-                            backgroundColor: data.servicos_por_tipo.map(function(_, i) { return coresPizza[i % coresPizza.length].bg; }),
-                            hoverBackgroundColor: data.servicos_por_tipo.map(function(_, i) { return coresPizza[i % coresPizza.length].hover; }),
-                            borderWidth: 3,
-                            borderColor: '#fff',
-                            hoverBorderWidth: 0,
-                            hoverOffset: 15
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        cutout: '55%',
-                        animation: {
-                            animateRotate: true,
-                            animateScale: true,
-                            duration: 1200,
-                            easing: 'easeOutBack'
-                        },
-                        onClick: function(evt, elements) {
-                            if (elements.length > 0) {
-                                var idx = elements[0].index;
-                                var tipo = data.servicos_por_tipo[idx].tipo;
-                                abrirListaEventos(tipo);
-                            }
-                        },
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: {
-                                    padding: 20,
-                                    usePointStyle: true,
-                                    pointStyle: 'circle',
-                                    font: { size: 13 }
-                                }
-                            },
-                            title: {
-                                display: true,
-                                text: 'Distribuição de Eventos por Tipo',
-                                font: { size: 14, weight: 'bold' },
-                                padding: { bottom: 15 }
-                            },
-                            tooltip: {
-                                backgroundColor: 'rgba(0,0,0,0.8)',
-                                titleFont: { size: 14 },
-                                bodyFont: { size: 13 },
-                                padding: 12,
-                                cornerRadius: 8,
-                                callbacks: {
-                                    label: function(ctx) {
-                                        var total = ctx.dataset.data.reduce(function(a,b) { return a+b; }, 0);
-                                        var pct = ((ctx.parsed / total) * 100).toFixed(1);
-                                        return ctx.label + ': ' + ctx.parsed + ' eventos (' + pct + '%)';
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-        })
-        .catch(error => {
-            console.error('Erro ao carregar dados do dashboard:', error);
-        });
+    window.periodoAtual = 'ano';
+    carregarDashboardData('ano');
     
     // Carregar eventos para o calendário
     fetch('/api/eventos-calendario')
@@ -999,14 +918,89 @@ function criarGraficoReceita(visao) {
 }
 
 function trocarVisaoReceita(visao) {
-    // Atualizar botões
     var btns = document.querySelectorAll('#btnGrupoVisao button');
     for (var i = 0; i < btns.length; i++) {
         btns[i].className = 'btn btn-outline-primary';
     }
     document.getElementById('btn' + visao.charAt(0).toUpperCase() + visao.slice(1)).className = 'btn btn-primary active';
-    
     criarGraficoReceita(visao);
+}
+
+// ===== PERÍODO DO DASHBOARD =====
+function carregarDashboardData(periodo) {
+    fetch('/api/dashboard-data?periodo=' + periodo)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            // Guardar dados
+            window.dadosReceita = data.receita_por_mes || [];
+            window.dadosServicos = data.servicos_por_tipo || [];
+            window.receitaChart = null;
+
+            // Atualizar gráfico de receita
+            if (window.dadosReceita.length > 0) {
+                criarGraficoReceita('todos');
+            }
+
+            // Atualizar gráfico de serviços
+            if (window.servicosChartInstance) {
+                window.servicosChartInstance.destroy();
+            }
+            var servicosCtx = document.getElementById('servicosChart').getContext('2d');
+            if (data.servicos_por_tipo && data.servicos_por_tipo.length > 0) {
+                var coresPizza = [
+                    { bg: 'rgba(102, 126, 234, 0.85)', hover: 'rgba(102, 126, 234, 1)' },
+                    { bg: 'rgba(240, 147, 251, 0.85)', hover: 'rgba(240, 147, 251, 1)' },
+                    { bg: 'rgba(67, 233, 123, 0.85)', hover: 'rgba(67, 233, 123, 1)' },
+                    { bg: 'rgba(250, 112, 154, 0.85)', hover: 'rgba(250, 112, 154, 1)' }
+                ];
+                window.servicosChartInstance = new Chart(servicosCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.servicos_por_tipo.map(function(item) { return item.tipo; }),
+                        datasets: [{
+                            data: data.servicos_por_tipo.map(function(item) { return item.total; }),
+                            backgroundColor: data.servicos_por_tipo.map(function(_, i) { return coresPizza[i % coresPizza.length].bg; }),
+                            hoverBackgroundColor: data.servicos_por_tipo.map(function(_, i) { return coresPizza[i % coresPizza.length].hover; }),
+                            borderWidth: 3, borderColor: '#fff', hoverBorderWidth: 0, hoverOffset: 15
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: true, cutout: '55%',
+                        animation: { animateRotate: true, animateScale: true, duration: 1200, easing: 'easeOutBack' },
+                        onClick: function(evt, elements) {
+                            if (elements.length > 0) {
+                                var idx = elements[0].index;
+                                abrirListaEventos(data.servicos_por_tipo[idx].tipo);
+                            }
+                        },
+                        plugins: {
+                            legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, pointStyle: 'circle', font: { size: 13 } } },
+                            title: { display: true, text: 'Distribuição de Eventos por Tipo', font: { size: 14, weight: 'bold' }, padding: { bottom: 15 } },
+                            tooltip: {
+                                backgroundColor: 'rgba(0,0,0,0.8)', padding: 12, cornerRadius: 8,
+                                callbacks: {
+                                    label: function(ctx) {
+                                        var total = ctx.dataset.data.reduce(function(a,b) { return a+b; }, 0);
+                                        return ctx.label + ': ' + ctx.parsed + ' (' + ((ctx.parsed/total)*100).toFixed(1) + '%)';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        })
+        .catch(function(err) { console.error('Erro dashboard-data:', err); });
+}
+
+function trocarPeriodo(periodo) {
+    window.periodoAtual = periodo;
+    var btns = document.querySelectorAll('#btnPeriodo button');
+    for (var i = 0; i < btns.length; i++) {
+        btns[i].className = 'btn btn-outline-primary';
+    }
+    event.currentTarget.className = 'btn btn-primary active';
+    carregarDashboardData(periodo);
 }
 </script>
 {% endblock %}
