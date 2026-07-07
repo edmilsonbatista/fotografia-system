@@ -179,9 +179,9 @@ endblock %} {% block content %}
                                         <button class="btn btn-sm btn-success me-1" onclick="registrarPagamento({{ evento.id }}, {{ evento.valor_negociado - evento.valor_pago }})"><i class="fas fa-dollar-sign"></i></button>
                                         {% endif %}
                                     {% endif %}
-                                    <button class="btn btn-sm btn-warning me-1" onclick="editarEvento({{ evento.id }}, {{ evento.cliente|tojson }}, {{ evento.tipo_servico|tojson }}, {{ evento.data_evento|data('%Y-%m-%d')|tojson }}, {{ evento.valor_negociado }}, {{ evento.valor_pago }}, {{ evento.status|tojson }}, {{ (evento.observacoes or '')|tojson }}, {{ (evento.ensaios_extras or 'Nenhum')|tojson }})"><i class="fas fa-edit"></i></button>
-                                    <button class="btn btn-sm btn-info me-1" onclick="verDetalhes({{ evento.cliente|tojson }}, {{ evento.tipo_servico|tojson }}, {{ evento.data_evento|data|tojson }}, {{ evento.valor_negociado }}, {{ evento.valor_pago }}, {{ evento.status|tojson }}, {{ evento.data_cadastro|datahora|tojson }}, {{ (evento.observacoes or '')|tojson }}, {{ (evento.ensaios_extras or 'Nenhum')|tojson }})"><i class="fas fa-eye"></i></button>
-                                    <button class="btn btn-sm btn-danger" onclick="excluirEvento({{ evento.id }}, '{{ evento.cliente }}')"><i class="fas fa-trash"></i></button>
+                                    <button class="btn btn-sm btn-warning me-1" onclick="editarEventoFromRow(this)"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-sm btn-info me-1" onclick="verDetalhesFromRow(this)"><i class="fas fa-eye"></i></button>
+                                    <button class="btn btn-sm btn-danger" onclick="excluirEventoFromRow(this)"><i class="fas fa-trash"></i></button>
                                 </td>
                             </tr>
                             {% endfor %}

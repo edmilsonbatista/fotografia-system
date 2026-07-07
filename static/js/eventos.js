@@ -88,6 +88,22 @@ function ordenarPorData() {
 }
 
 // ===== DETALHES =====
+function verDetalhesFromRow(btn) {
+  var row = btn.closest("tr");
+  var dados = JSON.parse(row.getAttribute("data-evento"));
+  verDetalhes(
+    dados.cliente,
+    dados.tipo_servico,
+    dados.data_evento,
+    dados.valor_negociado,
+    dados.valor_pago,
+    dados.status,
+    dados.data_cadastro,
+    dados.observacoes,
+    dados.ensaios_extras,
+  );
+}
+
 function verDetalhes(
   cliente,
   tipoServico,
@@ -209,6 +225,22 @@ function confirmarPagamento() {
 }
 
 // ===== EDITAR EVENTO =====
+function editarEventoFromRow(btn) {
+  var row = btn.closest("tr");
+  var dados = JSON.parse(row.getAttribute("data-evento"));
+  editarEvento(
+    dados.id,
+    dados.cliente,
+    dados.tipo_servico,
+    dados.data_evento,
+    dados.valor_negociado,
+    dados.valor_pago,
+    dados.status,
+    dados.observacoes,
+    dados.ensaios_extras,
+  );
+}
+
 function editarEvento(
   eventoId,
   cliente,
@@ -315,6 +347,12 @@ function salvarEdicaoEvento() {
 }
 
 // ===== EXCLUIR EVENTO =====
+function excluirEventoFromRow(btn) {
+  var row = btn.closest("tr");
+  var dados = JSON.parse(row.getAttribute("data-evento"));
+  excluirEvento(dados.id, dados.cliente);
+}
+
 function excluirEvento(eventoId, nomeCliente) {
   eventoIdExclusao = eventoId;
   document.getElementById("mensagemConfirmacao").innerHTML =
