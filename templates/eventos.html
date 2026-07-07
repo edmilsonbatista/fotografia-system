@@ -134,7 +134,8 @@ endblock %} {% block content %}
                         </thead>
                         <tbody>
                             {% for evento in eventos %}
-                            <tr data-cliente="{{ evento.cliente|lower }}" data-servico="{{ evento.tipo_servico }}" data-date="{{ evento.data_evento|data('%Y-%m-%d') }}" data-status="{{ evento.status }}">
+                            <tr data-cliente="{{ evento.cliente|lower }}" data-servico="{{ evento.tipo_servico }}" data-date="{{ evento.data_evento|data('%Y-%m-%d') }}" data-status="{{ evento.status }}"
+                                data-evento='{{ {"id": evento.id, "cliente": evento.cliente, "tipo_servico": evento.tipo_servico, "data_evento": evento.data_evento|data("%Y-%m-%d"), "valor_negociado": evento.valor_negociado, "valor_pago": evento.valor_pago, "status": evento.status, "observacoes": evento.observacoes or "", "ensaios_extras": evento.ensaios_extras or "Nenhum", "data_cadastro": evento.data_cadastro|datahora}|tojson }}'>
                                 <td class="align-middle">{{ evento.cliente }}</td>
                                 <td class="align-middle">
                                     {% if evento.tipo_servico == 'Fotografia' %}
@@ -178,8 +179,8 @@ endblock %} {% block content %}
                                         <button class="btn btn-sm btn-success me-1" onclick="registrarPagamento({{ evento.id }}, {{ evento.valor_negociado - evento.valor_pago }})"><i class="fas fa-dollar-sign"></i></button>
                                         {% endif %}
                                     {% endif %}
-                                    <button class="btn btn-sm btn-warning me-1" onclick="editarEvento({{ evento.id }}, '{{ evento.cliente }}', '{{ evento.tipo_servico }}', '{{ evento.data_evento|data('%Y-%m-%d') }}', {{ evento.valor_negociado }}, {{ evento.valor_pago }}, '{{ evento.status }}', '{{ evento.observacoes|replace("'", "\\'") }}', '{{ evento.ensaios_extras }}')"><i class="fas fa-edit"></i></button>
-                                    <button class="btn btn-sm btn-info me-1" onclick="verDetalhes('{{ evento.cliente }}', '{{ evento.tipo_servico }}', '{{ evento.data_evento|data }}', {{ evento.valor_negociado }}, {{ evento.valor_pago }}, '{{ evento.status }}', '{{ evento.data_cadastro|datahora }}', '{{ evento.observacoes|replace("'", "\\'") }}', '{{ evento.ensaios_extras }}')"><i class="fas fa-eye"></i></button>
+                                    <button class="btn btn-sm btn-warning me-1" onclick="editarEvento({{ evento.id }}, {{ evento.cliente|tojson }}, {{ evento.tipo_servico|tojson }}, {{ evento.data_evento|data('%Y-%m-%d')|tojson }}, {{ evento.valor_negociado }}, {{ evento.valor_pago }}, {{ evento.status|tojson }}, {{ (evento.observacoes or '')|tojson }}, {{ (evento.ensaios_extras or 'Nenhum')|tojson }})"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-sm btn-info me-1" onclick="verDetalhes({{ evento.cliente|tojson }}, {{ evento.tipo_servico|tojson }}, {{ evento.data_evento|data|tojson }}, {{ evento.valor_negociado }}, {{ evento.valor_pago }}, {{ evento.status|tojson }}, {{ evento.data_cadastro|datahora|tojson }}, {{ (evento.observacoes or '')|tojson }}, {{ (evento.ensaios_extras or 'Nenhum')|tojson }})"><i class="fas fa-eye"></i></button>
                                     <button class="btn btn-sm btn-danger" onclick="excluirEvento({{ evento.id }}, '{{ evento.cliente }}')"><i class="fas fa-trash"></i></button>
                                 </td>
                             </tr>

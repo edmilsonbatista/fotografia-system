@@ -174,16 +174,65 @@ Fotografia{% endblock %} {% block content %}
             </div>
         </div>
 
+        <!-- Filtros do Caixa -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-filter"></i> Filtros</h5>
+                <button class="btn btn-sm btn-outline-secondary" onclick="limparFiltrosCaixa()">
+                    <i class="fas fa-times"></i> Limpar
+                </button>
+            </div>
+            <div class="card-body py-3">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label small mb-1"><i class="fas fa-search"></i> Buscar</label>
+                        <input type="text" id="filtroBuscaCaixa" class="form-control form-control-sm" placeholder="Buscar descrição..." oninput="aplicarFiltrosCaixa()">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small mb-1"><i class="fas fa-exchange-alt"></i> Tipo</label>
+                        <select id="filtroTipoCaixa" class="form-select form-select-sm" onchange="aplicarFiltrosCaixa()">
+                            <option value="">Todos</option>
+                            <option value="Entrada">Entrada</option>
+                            <option value="Saída">Saída</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small mb-1"><i class="fas fa-calendar"></i> Data de</label>
+                        <input type="date" id="filtroDataDeCaixa" class="form-control form-control-sm" onchange="aplicarFiltrosCaixa()">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small mb-1"><i class="fas fa-calendar"></i> Data até</label>
+                        <input type="date" id="filtroDataAteCaixa" class="form-control form-control-sm" onchange="aplicarFiltrosCaixa()">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small mb-1"><i class="fas fa-tag"></i> Categoria</label>
+                        <select id="filtroCategoriaCaixa" class="form-select form-select-sm" onchange="aplicarFiltrosCaixa()">
+                            <option value="">Todas</option>
+                            <option value="Pagamento de Cliente">Pagamento de Cliente</option>
+                            <option value="Equipamento">Equipamento</option>
+                            <option value="Transporte">Transporte</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Manutenção">Manutenção</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted"><span id="contadorFiltroCaixa">{{ transacoes|length }}</span> de {{ transacoes|length }} transações</small>
+                </div>
+            </div>
+        </div>
+
         <!-- Histórico de Transações -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="fas fa-history"></i> Histórico de Transações</h5>
-                <span class="badge bg-primary">{{ transacoes|length }} registros</span>
+                <span class="badge bg-primary"><span id="totalTransacoes">{{ transacoes|length }}</span> registros</span>
             </div>
             <div class="card-body">
                 {% if transacoes %}
                 <div class="table-responsive">
-                    <table class="table table-striped">
+                    <table class="table table-striped" id="tabelaCaixa">
                         <thead>
                             <tr>
                                 <th>Data</th>
@@ -196,7 +245,7 @@ Fotografia{% endblock %} {% block content %}
                         </thead>
                         <tbody>
                             {% for transacao in transacoes %}
-                            <tr>
+                            <tr data-desc="{{ transacao.descricao|lower }}" data-tipo="{{ transacao.tipo }}" data-date="{{ transacao.data_transacao|data('%Y-%m-%d') }}" data-cat="{{ transacao.categoria or '' }}">
                                 <td class="align-middle">{{ transacao.data_transacao|data }}</td>
                                 <td class="align-middle">
                                     {% if transacao.tipo == 'Entrada' %}
@@ -372,6 +421,7 @@ Fotografia{% endblock %} {% block content %}
     <div class="modal-dialog">
         <div class="modal-content">
             <form action="{{ url_for('nova_transacao') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="fas fa-plus"></i> Nova Transação</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

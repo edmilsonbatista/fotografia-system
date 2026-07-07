@@ -85,7 +85,7 @@ def _build_branding_elements(logo_path: str, subtitle: str = ''):
         except Exception:
             pass
     styles = _get_styles()
-    elements.append(Paragraph('Photo Pro Studio', styles['BrandTitle']))
+    elements.append(Paragraph('FotoFlow', styles['BrandTitle']))
     if subtitle:
         elements.append(Paragraph(subtitle, styles['SubTitle']))
     elements.append(Spacer(1, 4 * mm))

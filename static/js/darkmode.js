@@ -1,20 +1,32 @@
-// Dark Mode Toggle — persiste no localStorage
+// Dark Mode — aplica no html (já feito pelo inline no head) e sincroniza body
 (function () {
-  var saved = localStorage.getItem("darkMode");
-  if (saved === "true") document.body.classList.add("dark-mode");
+  var isDark = localStorage.getItem("darkMode") === "true";
+  // html já tem a classe via script inline no head
+  // Sincronizar body quando disponível
+  if (isDark) document.body.classList.add("dark-mode");
   updateIcon();
 })();
 
 function toggleDarkMode() {
-  document.body.classList.toggle("dark-mode");
-  var isDark = document.body.classList.contains("dark-mode");
+  // Ativar transição suave só ao clicar (não na carga)
+  document.documentElement.classList.add("dark-mode-transition");
+
+  var isDark = !document.documentElement.classList.contains("dark-mode");
+  document.documentElement.classList.toggle("dark-mode", isDark);
+  document.body.classList.toggle("dark-mode", isDark);
   localStorage.setItem("darkMode", isDark);
   updateIcon();
+
+  // Remover classe de transição após completar
+  setTimeout(function () {
+    document.documentElement.classList.remove("dark-mode-transition");
+  }, 400);
 }
 
 function updateIcon() {
   var icon = document.getElementById("darkModeIcon");
   if (!icon) return;
-  var isDark = document.body.classList.contains("dark-mode");
-  icon.className = isDark ? "fas fa-sun" : "fas fa-moon";
+  icon.className = document.documentElement.classList.contains("dark-mode")
+    ? "fas fa-sun"
+    : "fas fa-moon";
 }

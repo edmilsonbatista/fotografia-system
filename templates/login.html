@@ -16,6 +16,22 @@
       href="{{ url_for('static', filename='css/style.css') }}"
       rel="stylesheet"
     />
+    <link
+      rel="icon"
+      type="image/png"
+      href="{{ url_for('static', filename='img/photoflow_icon.png') }}"
+    />
+    <script>
+      if (localStorage.getItem("darkMode") === "true")
+        document.documentElement.classList.add("dark-mode");
+    </script>
+    <style>
+      html.dark-mode,
+      html.dark-mode body {
+        background-color: #0f0f23 !important;
+        color: #e2e2f0 !important;
+      }
+    </style>
     <style>
       body {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -40,8 +56,9 @@
         text-align: center;
       }
       .login-header img {
-        max-height: 70px;
-        max-width: 250px;
+        max-height: 60px;
+        max-width: 200px;
+        object-fit: contain;
       }
       .login-body {
         padding: 2rem;
@@ -68,8 +85,8 @@
     <div class="login-card card">
       <div class="login-header">
         <img
-          src="{{ url_for('static', filename='img/photoprostudio3.png') }}"
-          alt="Photo Pro Studio"
+          src="{{ url_for('static', filename='img/photoflow_icon.png') }}"
+          alt="FotoFlow"
         />
       </div>
       <div class="login-body">
@@ -88,6 +105,7 @@
         </div>
         {% endfor %} {% endif %} {% endwith %}
         <form method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
           <div class="mb-3">
             <label for="username" class="form-label">Usuário</label>
             <div class="input-group">

@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date
 import os
@@ -13,6 +14,8 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', os.urandom(24))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///fotografia.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+csrf = CSRFProtect(app)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
 
@@ -509,6 +512,26 @@ def editar_evento(id):
     evento.ensaios_extras = ensaios_extras
     evento.observacoes = request.json.get('observacoes', evento.observacoes)
     
+    # Atualizar transação pendente
+    saldo_restante = evento.valor_negociado - evento.valor_pago
+    pendente = Transacao.query.filter_by(evento_id=id, tipo='Entrada Pendente').first()
+    
+    if evento.status == 'Cancelado' or saldo_restante <= 0:
+        if pendente:
+            db.session.delete(pendente)
+    elif saldo_restante > 0:
+        if pendente:
+            pendente.valor = saldo_restante
+            pendente.descricao = f'Saldo restante - {evento.cliente}'
+            pendente.data_transacao = evento.data_evento
+        else:
+            nova = Transacao(
+                evento_id=id, tipo='Entrada Pendente', valor=saldo_restante,
+                descricao=f'Saldo restante - {evento.cliente}',
+                data_transacao=evento.data_evento, categoria='Pagamento de Cliente'
+            )
+            db.session.add(nova)
+    
     db.session.commit()
     return jsonify({'success': True})
 
@@ -662,6 +685,21 @@ def importar_eventos():
                         observacoes=str(row.get('observacoes', ''))
                     )
                     db.session.add(evento)
+                    db.session.flush()
+                    
+                    # Criar transação pendente se há valor a receber
+                    saldo = float(row.get('valor_negociado', 0)) - float(row.get('valor_pago', 0))
+                    if saldo > 0:
+                        pendente = Transacao(
+                            evento_id=evento.id,
+                            tipo='Entrada Pendente',
+                            valor=saldo,
+                            descricao=f'Saldo restante - {evento.cliente}',
+                            data_transacao=evento.data_evento,
+                            categoria='Pagamento de Cliente'
+                        )
+                        db.session.add(pendente)
+                    
                     eventos_importados += 1
                 except Exception as e:
                     continue
@@ -957,47 +995,72 @@ def alertas_eventos():
 # Rotas de Exportação
 # ---------------------------------------------------------------------------
 
-LOGO_PATH = os.path.join('static', 'img', 'photoprostudio3.png')
+LOGO_PATH = os.path.join('static', 'img', 'photoflow_icon.png')
+
+
+def _filtrar_eventos():
+    """Aplica filtros de query string e retorna lista de eventos."""
+    query = Evento.query
+    cliente = request.args.get('cliente', '').strip()
+    servico = request.args.get('servico', '').strip()
+    data_de = request.args.get('data_de', '').strip()
+    data_ate = request.args.get('data_ate', '').strip()
+    status = request.args.get('status', '').strip()
+    if cliente:
+        query = query.filter(Evento.cliente.ilike(f'%{cliente}%'))
+    if servico:
+        query = query.filter(Evento.tipo_servico == servico)
+    if data_de:
+        query = query.filter(Evento.data_evento >= datetime.strptime(data_de, '%Y-%m-%d').date())
+    if data_ate:
+        query = query.filter(Evento.data_evento <= datetime.strptime(data_ate, '%Y-%m-%d').date())
+    if status:
+        query = query.filter(Evento.status == status)
+    return query.order_by(Evento.data_evento.asc()).all()
+
+
+def _eventos_to_dict(eventos):
+    return [{
+        'cliente': e.cliente, 'tipo_servico': e.tipo_servico,
+        'data_evento': e.data_evento, 'ensaios_extras': e.ensaios_extras,
+        'valor_negociado': e.valor_negociado, 'valor_pago': e.valor_pago,
+        'status': e.status,
+    } for e in eventos]
+
+
+def _dados_caixa():
+    """Retorna dados do caixa para exportação."""
+    transacoes_realizadas = Transacao.query.filter(
+        Transacao.tipo.in_(['Entrada', 'Saída'])
+    ).order_by(Transacao.data_transacao.desc()).all()
+    transacoes_pendentes = db.session.query(Transacao).join(
+        Evento, Transacao.evento_id == Evento.id
+    ).filter(
+        Transacao.tipo == 'Entrada Pendente',
+        Evento.status.notin_(['Cancelado']),
+        Evento.valor_pago < Evento.valor_negociado
+    ).order_by(Transacao.data_transacao.asc()).all()
+    entradas = db.session.query(db.func.sum(Transacao.valor)).filter(Transacao.tipo == 'Entrada').scalar() or 0
+    saidas = db.session.query(db.func.sum(Transacao.valor)).filter(Transacao.tipo == 'Saída').scalar() or 0
+    saldo = entradas - saidas
+    total_pendente = sum(t.valor for t in transacoes_pendentes)
+    tx_dict = [{'data_transacao': t.data_transacao, 'tipo': t.tipo,
+                'descricao': t.descricao, 'categoria': t.categoria or '',
+                'valor': t.valor} for t in transacoes_realizadas]
+    pend_dict = [{'data_transacao': t.data_transacao, 'descricao': t.descricao,
+                  'valor': t.valor} for t in transacoes_pendentes]
+    return tx_dict, pend_dict, entradas, saidas, saldo, total_pendente
 
 
 @app.route('/exportar/eventos/excel')
 @login_required
 def exportar_eventos_excel():
     try:
-        query = Evento.query
-        cliente = request.args.get('cliente', '').strip()
-        servico = request.args.get('servico', '').strip()
-        data_de = request.args.get('data_de', '').strip()
-        data_ate = request.args.get('data_ate', '').strip()
-        status = request.args.get('status', '').strip()
-
-        if cliente:
-            query = query.filter(Evento.cliente.ilike(f'%{cliente}%'))
-        if servico:
-            query = query.filter(Evento.tipo_servico == servico)
-        if data_de:
-            query = query.filter(Evento.data_evento >= datetime.strptime(data_de, '%Y-%m-%d').date())
-        if data_ate:
-            query = query.filter(Evento.data_evento <= datetime.strptime(data_ate, '%Y-%m-%d').date())
-        if status:
-            query = query.filter(Evento.status == status)
-
-        eventos = query.order_by(Evento.data_evento.asc()).all()
-        eventos_dict = [{
-            'cliente': e.cliente,
-            'tipo_servico': e.tipo_servico,
-            'data_evento': e.data_evento,
-            'ensaios_extras': e.ensaios_extras,
-            'valor_negociado': e.valor_negociado,
-            'valor_pago': e.valor_pago,
-            'status': e.status,
-        } for e in eventos]
-
+        eventos = _filtrar_eventos()
         hoje = date.today()
-        buf = export_utils.gerar_excel_eventos(eventos_dict, hoje)
-        filename = f'eventos_{hoje.strftime("%Y-%m-%d")}.xlsx'
+        buf = export_utils.gerar_excel_eventos(_eventos_to_dict(eventos), hoje)
         return send_file(buf, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                         as_attachment=True, download_name=filename)
+                         as_attachment=True, download_name=f'eventos_{hoje.strftime("%Y-%m-%d")}.xlsx')
     except Exception as e:
         return jsonify({'error': f'Erro ao gerar Excel: {str(e)}'}), 500
 
@@ -1006,40 +1069,11 @@ def exportar_eventos_excel():
 @login_required
 def exportar_eventos_pdf():
     try:
-        query = Evento.query
-        cliente = request.args.get('cliente', '').strip()
-        servico = request.args.get('servico', '').strip()
-        data_de = request.args.get('data_de', '').strip()
-        data_ate = request.args.get('data_ate', '').strip()
-        status = request.args.get('status', '').strip()
-
-        if cliente:
-            query = query.filter(Evento.cliente.ilike(f'%{cliente}%'))
-        if servico:
-            query = query.filter(Evento.tipo_servico == servico)
-        if data_de:
-            query = query.filter(Evento.data_evento >= datetime.strptime(data_de, '%Y-%m-%d').date())
-        if data_ate:
-            query = query.filter(Evento.data_evento <= datetime.strptime(data_ate, '%Y-%m-%d').date())
-        if status:
-            query = query.filter(Evento.status == status)
-
-        eventos = query.order_by(Evento.data_evento.asc()).all()
-        eventos_dict = [{
-            'cliente': e.cliente,
-            'tipo_servico': e.tipo_servico,
-            'data_evento': e.data_evento,
-            'ensaios_extras': e.ensaios_extras,
-            'valor_negociado': e.valor_negociado,
-            'valor_pago': e.valor_pago,
-            'status': e.status,
-        } for e in eventos]
-
+        eventos = _filtrar_eventos()
         hoje = date.today()
-        buf = export_utils.gerar_pdf_eventos(eventos_dict, hoje, LOGO_PATH)
-        filename = f'eventos_{hoje.strftime("%Y-%m-%d")}.pdf'
+        buf = export_utils.gerar_pdf_eventos(_eventos_to_dict(eventos), hoje, LOGO_PATH)
         return send_file(buf, mimetype='application/pdf',
-                         as_attachment=True, download_name=filename)
+                         as_attachment=True, download_name=f'eventos_{hoje.strftime("%Y-%m-%d")}.pdf')
     except Exception as e:
         return jsonify({'error': f'Erro ao gerar PDF: {str(e)}'}), 500
 
@@ -1048,34 +1082,11 @@ def exportar_eventos_pdf():
 @login_required
 def exportar_caixa_excel():
     try:
-        transacoes_realizadas = Transacao.query.filter(
-            Transacao.tipo.in_(['Entrada', 'Saída'])
-        ).order_by(Transacao.data_transacao.desc()).all()
-
-        transacoes_pendentes = db.session.query(Transacao).join(
-            Evento, Transacao.evento_id == Evento.id
-        ).filter(
-            Transacao.tipo == 'Entrada Pendente',
-            Evento.status.notin_(['Cancelado']),
-            Evento.valor_pago < Evento.valor_negociado
-        ).order_by(Transacao.data_transacao.asc()).all()
-
-        entradas = db.session.query(db.func.sum(Transacao.valor)).filter(Transacao.tipo == 'Entrada').scalar() or 0
-        saidas = db.session.query(db.func.sum(Transacao.valor)).filter(Transacao.tipo == 'Saída').scalar() or 0
-        saldo = entradas - saidas
-        total_pendente = sum(t.valor for t in transacoes_pendentes)
-
-        tx_dict = [{'data_transacao': t.data_transacao, 'tipo': t.tipo,
-                     'descricao': t.descricao, 'categoria': t.categoria or '',
-                     'valor': t.valor} for t in transacoes_realizadas]
-        pend_dict = [{'data_transacao': t.data_transacao, 'descricao': t.descricao,
-                      'valor': t.valor} for t in transacoes_pendentes]
-
+        tx, pend, entradas, saidas, saldo, total_pend = _dados_caixa()
         hoje = date.today()
-        buf = export_utils.gerar_excel_caixa(tx_dict, pend_dict, entradas, saidas, saldo, total_pendente, hoje)
-        filename = f'caixa_{hoje.strftime("%Y-%m-%d")}.xlsx'
+        buf = export_utils.gerar_excel_caixa(tx, pend, entradas, saidas, saldo, total_pend, hoje)
         return send_file(buf, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                         as_attachment=True, download_name=filename)
+                         as_attachment=True, download_name=f'caixa_{hoje.strftime("%Y-%m-%d")}.xlsx')
     except Exception as e:
         return jsonify({'error': f'Erro ao gerar Excel: {str(e)}'}), 500
 
@@ -1084,31 +1095,11 @@ def exportar_caixa_excel():
 @login_required
 def exportar_caixa_pdf():
     try:
-        transacoes_realizadas = Transacao.query.filter(
-            Transacao.tipo.in_(['Entrada', 'Saída'])
-        ).order_by(Transacao.data_transacao.desc()).all()
-
-        transacoes_pendentes = db.session.query(Transacao).join(
-            Evento, Transacao.evento_id == Evento.id
-        ).filter(
-            Transacao.tipo == 'Entrada Pendente',
-            Evento.status.notin_(['Cancelado']),
-            Evento.valor_pago < Evento.valor_negociado
-        ).order_by(Transacao.data_transacao.asc()).all()
-
-        entradas = db.session.query(db.func.sum(Transacao.valor)).filter(Transacao.tipo == 'Entrada').scalar() or 0
-        saidas = db.session.query(db.func.sum(Transacao.valor)).filter(Transacao.tipo == 'Saída').scalar() or 0
-        saldo = entradas - saidas
-
-        tx_dict = [{'data_transacao': t.data_transacao, 'tipo': t.tipo,
-                     'descricao': t.descricao, 'categoria': t.categoria or '',
-                     'valor': t.valor} for t in transacoes_realizadas]
-        pend_dict = [{'data_transacao': t.data_transacao, 'descricao': t.descricao,
-                      'valor': t.valor} for t in transacoes_pendentes]
-
+        tx, pend, entradas, saidas, saldo, _ = _dados_caixa()
         hoje = date.today()
-        buf = export_utils.gerar_pdf_caixa(tx_dict, pend_dict, entradas, saidas, saldo, hoje, LOGO_PATH)
-        filename = f'caixa_{hoje.strftime("%Y-%m-%d")}.pdf'
+        buf = export_utils.gerar_pdf_caixa(tx, pend, entradas, saidas, saldo, hoje, LOGO_PATH)
+        return send_file(buf, mimetype='application/pdf',
+                         as_attachment=True, download_name=f'caixa_{hoje.strftime("%Y-%m-%d")}.pdf')
         return send_file(buf, mimetype='application/pdf',
                          as_attachment=True, download_name=filename)
     except Exception as e:

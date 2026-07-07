@@ -150,3 +150,55 @@ function reverterPagamento(id, descricao) {
       });
   }
 }
+
+// ===== FILTROS DO CAIXA =====
+function aplicarFiltrosCaixa() {
+  var busca = (document.getElementById("filtroBuscaCaixa") || {}).value || "";
+  busca = busca.toLowerCase();
+  var tipo = (document.getElementById("filtroTipoCaixa") || {}).value || "";
+  var dataDe = (document.getElementById("filtroDataDeCaixa") || {}).value || "";
+  var dataAte =
+    (document.getElementById("filtroDataAteCaixa") || {}).value || "";
+  var cat = (document.getElementById("filtroCategoriaCaixa") || {}).value || "";
+
+  var rows = document.querySelectorAll("#tabelaCaixa tbody tr");
+  var visiveis = 0;
+
+  for (var i = 0; i < rows.length; i++) {
+    var row = rows[i];
+    var rDesc = row.getAttribute("data-desc") || "";
+    var rTipo = row.getAttribute("data-tipo") || "";
+    var rDate = row.getAttribute("data-date") || "";
+    var rCat = row.getAttribute("data-cat") || "";
+
+    var show = true;
+    if (busca && rDesc.indexOf(busca) === -1) show = false;
+    if (tipo && rTipo !== tipo) show = false;
+    if (dataDe && rDate < dataDe) show = false;
+    if (dataAte && rDate > dataAte) show = false;
+    if (cat && rCat !== cat) show = false;
+
+    row.style.display = show ? "" : "none";
+    if (show) visiveis++;
+  }
+
+  var contador = document.getElementById("contadorFiltroCaixa");
+  var total = document.getElementById("totalTransacoes");
+  if (contador) contador.textContent = visiveis;
+  if (total) total.textContent = visiveis;
+}
+
+function limparFiltrosCaixa() {
+  var ids = [
+    "filtroBuscaCaixa",
+    "filtroTipoCaixa",
+    "filtroDataDeCaixa",
+    "filtroDataAteCaixa",
+    "filtroCategoriaCaixa",
+  ];
+  for (var i = 0; i < ids.length; i++) {
+    var el = document.getElementById(ids[i]);
+    if (el) el.value = "";
+  }
+  aplicarFiltrosCaixa();
+}
