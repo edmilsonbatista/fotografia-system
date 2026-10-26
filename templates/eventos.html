@@ -173,8 +173,8 @@ endblock %} {% block content %}
                                 </td>
                                 <td class="align-middle" style="white-space: nowrap;">
                                     {% if evento.valor_pago < evento.valor_negociado %}
-                                        {% if evento.status == 'Cancelado' %}
-                                        <button class="btn btn-sm btn-secondary me-1" disabled><i class="fas fa-dollar-sign"></i></button>
+                                        {% if evento.status == 'Cancelado' or evento.status == 'Realizado' %}
+                                        {# Não exibe botão de pagamento para eventos cancelados ou realizados #}
                                         {% else %}
                                         <button class="btn btn-sm btn-success me-1" onclick="registrarPagamento({{ evento.id }}, {{ evento.valor_negociado - evento.valor_pago }})"><i class="fas fa-dollar-sign"></i></button>
                                         {% endif %}
